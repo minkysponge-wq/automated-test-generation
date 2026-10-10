@@ -57,7 +57,7 @@
   <h3>History</h3>
   <table class="tbl compact">
     {% for h in history %}{% set a = h.after_json|fromjson %}
-      <tr><td>{{ h.ts|dt }}</td><td>{{ STATE_LABELS.get(a.status, h.action) }}</td><td class="muted">{{ a.reason or a.comment or '' }}</td></tr>
+      <tr><td>{{ h.ts|dt }}</td><td>{{ 'Submitted' if h.action == 'request.submit' else STATE_LABELS.get(a.status, h.action) }}</td><td class="muted">{{ a.reason or a.comment or '' }}</td></tr>
     {% endfor %}
   </table>
 </div>

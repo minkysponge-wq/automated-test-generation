@@ -165,11 +165,25 @@
 
   // ---------------------------------------------------------------- admin live preview
   const lp = $("#load-preview");
-  if (lp) lp.addEventListener("click", () => {
+  if (lp) lp.addEventListener("click", async () => {
     const fr = $("#preview-frame");
-    fr.hidden = false;
+    lp.disabled = true;
     lp.textContent = "Generating… (a few seconds)";
-    fr.onload = () => (lp.textContent = "↻ Refresh preview");
-    fr.src = lp.dataset.src + "?t=" + Date.now();
+    try {
+      // fetch as a blob: PDF iframes do not reliably fire `load` in every browser
+      const res = await fetch(lp.dataset.src + "?t=" + Date.now());
+      const blob = await res.blob();
+      if (blob.type.includes("pdf")) {
+        fr.src = URL.createObjectURL(blob);
+        fr.hidden = false;
+      } else {                       // no converter -> server sent the DOCX
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(blob); a.download = "preview.docx"; a.click();
+      }
+      lp.textContent = "↻ Refresh preview";
+    } catch (e) {
+      lp.textContent = "Preview failed - retry";
+    }
+    lp.disabled = false;
   });
 })();

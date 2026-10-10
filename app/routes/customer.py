@@ -95,7 +95,7 @@ def request_detail(job_id):
     rep = conn.execute("SELECT * FROM reports WHERE job_id=?", (job_id,)).fetchone()
     files = conn.execute("SELECT * FROM files WHERE job_id=? AND kind='request_document'", (job_id,)).fetchall()
     history = conn.execute("SELECT ts, action, after_json FROM audit_log WHERE entity_type='job' AND entity_id=? "
-                           "AND action LIKE 'job.%' ORDER BY id", (str(job_id),)).fetchall()
+                           "AND (action LIKE 'job.%' OR action='request.submit') ORDER BY id", (str(job_id),)).fetchall()
     amendments = conn.execute("SELECT id, report_no, status FROM requests WHERE amends_id=?", (job["amends_id"] or job_id,)).fetchall()
     return render_template("customer/request_detail.html", job=job, form=json.loads(job["form_json"]),
                            tests=workflow.tests_of(job), rep=rep, files=files, history=history, amendments=amendments)
