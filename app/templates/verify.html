@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}Verify report{% endblock %}
+{% block content %}
+<div class="card center-card">
+  <h1>Report verification</h1>
+  {% if not rep %}
+    <div class="verdict bad">❌ No issued report with number <b>{{ report_no }}</b> exists in this laboratory's register.</div>
+  {% else %}
+    <div class="verdict {{ 'good' if res.ok else 'bad' }}">
+      {{ '✅ Genuine - the report and its data are unchanged since issue.' if res.ok else '❌ Integrity check FAILED - do not rely on this report.' }}
+    </div>
+    <table class="kv">
+      <tr><th>Test report number</th><td>{{ rep.report_no }}</td></tr>
+      <tr><th>Issued</th><td>{{ rep.issued_at|dt }}</td></tr>
+      <tr><th>Seal (SHA-256 of snapshot)</th><td class="mono">{{ rep.sha256_snapshot }}</td></tr>
+      <tr><th>DOCX SHA-256</th><td class="mono">{{ rep.sha256_docx }}</td></tr>
+      {% if rep.sha256_pdf %}<tr><th>PDF SHA-256</th><td class="mono">{{ rep.sha256_pdf }}</td></tr>{% endif %}
+    </table>
+    <ul class="checks">
+      {% for label, ok in res.checks %}<li>{{ '✅' if ok else '❌' }} {{ label }}</li>{% endfor %}
+    </ul>
+  {% endif %}
+</div>
+{% endblock %}

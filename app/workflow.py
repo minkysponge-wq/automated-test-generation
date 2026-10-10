@@ -1,4 +1,4 @@
-"""
+r"""
 Server-side state machine for a test request / job.
 
     SUBMITTED -> ACCEPTED -> ASSIGNED -> IN_TESTING -> LOCKED_BY_ENGINEER -> UNDER_REVIEW -> ISSUED

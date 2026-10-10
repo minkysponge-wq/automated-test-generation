@@ -10,3 +10,4 @@ storage/sealed/*
 storage/preview/*
 !storage/*/.gitkeep
 e2e_output/
+.pytest_tmp/

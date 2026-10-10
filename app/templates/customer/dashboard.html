@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% from "_macros.html" import badge with context %}
+{% block title %}My requests{% endblock %}
+{% block content %}
+<div class="page-head">
+  <h1>My test requests</h1>
+  <a class="btn btn-primary" href="{{ url_for('customer.new_request') }}">+ New test request</a>
+</div>
+{% if not rows %}
+  <div class="card empty">No requests yet. Click <b>New test request</b> to submit your first sample.</div>
+{% else %}
+<div class="card">
+<table class="tbl">
+  <thead><tr><th>#</th><th>Submitted</th><th>Sample</th><th>Serial no.</th><th>CPRI sample code</th><th>Test report no.</th><th>Status</th><th></th></tr></thead>
+  <tbody>
+  {% for r in rows %}{% set f = r.form_json|fromjson %}
+    <tr>
+      <td>{{ r.id }}</td>
+      <td>{{ r.created_at|d }}</td>
+      <td>{{ f.rating }}<br><small class="muted">{{ f.samples }}</small></td>
+      <td>{{ f.serial_numbers }}</td>
+      <td class="mono">{{ r.sample_code or '—' }}</td>
+      <td class="mono">{{ r.report_no or '—' }}</td>
+      <td>{{ badge(r.status) }}</td>
+      <td><a class="btn btn-sm" href="{{ url_for('customer.request_detail', job_id=r.id) }}">Open</a></td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{% endif %}
+{% endblock %}

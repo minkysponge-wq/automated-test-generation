@@ -1,0 +1,156 @@
+{% extends "base.html" %}
+{% from "_macros.html" import badge, passbadge with context %}
+{% block title %}{{ job.sample_code }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>{{ job.sample_code }} <small class="mono muted">{{ job.report_no }}</small> {{ badge(job.status) }}</h1>
+    <div class="muted">{{ form.customer_name }} · {{ form.rating }} · Sl. No. {{ form.serial_numbers }} ·
+      Team: {% for e in engineers %}{{ e.full_name }}{% if e.role == 'responsible' %} (responsible){% endif %}{% if not loop.last %}, {% endif %}{% endfor %}</div>
+  </div>
+  <a class="btn" href="{{ url_for('engineer.dashboard') }}">← My jobs</a>
+</div>
+
+<div class="statusbar card" data-poll="{{ url_for('api.job_status', job_id=job.id) }}" data-version="{{ job.version }}">
+  {% if job.status == 'RETURNED' %}<div class="flash flash-warning"><b>Returned by admin:</b> {{ job.return_comment }}</div>{% endif %}
+  {% if not editable %}<div class="flash flash-info">🔒 This job is <b>{{ STATE_LABELS[job.status] }}</b> - readings are read-only{% if job.is_sealed %} (sealed by report issue){% endif %}.</div>{% endif %}
+  <div class="poll-note muted"></div>
+</div>
+
+<nav class="tabs">
+  {% for s in stations %}
+    <a href="{{ url_for('engineer.job', job_id=job.id, station=s.station) }}" class="tab {{ 'active' if s.station == active }}">
+      {{ s.title }}
+      {% if s.verified %}<span class="pill ok">✓ verified</span>
+      {% elif s.n_values == 0 %}<span class="pill">no data</span>
+      {% elif s.missing %}<span class="pill warn">{{ s.missing|length }} missing</span>{% endif %}
+      {% if s.failed %}<span class="pill bad">{{ s.failed }} fail</span>{% endif %}
+    </a>
+  {% endfor %}
+</nav>
+
+{% for s in stations if s.station == active %}
+<section class="card station">
+  <div class="station-steps">
+    <div class="step">
+      <span class="stepno">1</span>
+      <div><b>Download the Excel logsheet</b><br><small class="muted">Header (series no., sample code, customer, rating, serial, date) is pre-filled.</small></div>
+      <a class="btn btn-sm" href="{{ url_for('engineer.template', job_id=job.id, station=s.station) }}">⬇ {{ STATIONS[s.station].file }}</a>
+    </div>
+    <div class="step">
+      <span class="stepno">2</span>
+      <div><b>Upload the filled logsheet</b><br><small class="muted">Values are found by placeholder / defined name, not by cell position.</small></div>
+      {% if editable %}
+      <form method="post" enctype="multipart/form-data" action="{{ url_for('engineer.upload', job_id=job.id, station=s.station) }}" class="upload-form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="file" name="file" accept=".xlsx" required>
+        <button class="btn btn-sm btn-primary">⬆ Upload &amp; import</button>
+      </form>
+      {% else %}<span class="muted">locked</span>{% endif %}
+    </div>
+    <div class="step">
+      <span class="stepno">3</span>
+      <div><b>Check, correct (with reason) and verify</b><br><small class="muted">{{ s.n_values }} values · {{ s.passed }} pass · {{ s.failed }} fail{% if s.missing %} · {{ s.missing|length }} required missing{% endif %}</small></div>
+      {% if editable %}
+      <form method="post" action="{{ url_for('engineer.verify', job_id=job.id, station=s.station) }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button class="btn btn-sm {{ 'btn-ok' if not s.missing else '' }}" {% if s.missing or s.n_values == 0 %}disabled title="Fill all required values first"{% endif %}>
+          {{ '✓ Verified - verify again' if s.verified else 'Mark verified' }}</button>
+      </form>
+      {% endif %}
+    </div>
+  </div>
+
+  {% if import_summary and import_summary.station == s.station %}
+  <div class="import-summary">
+    <b>Last import:</b> {{ import_summary.inserted }} new, {{ import_summary.updated }} changed, {{ import_summary.unchanged }} unchanged.
+    {% if import_summary.unfilled or import_summary.missing %}<br><span class="warn-text">Empty required placeholders: {{ (import_summary.unfilled + import_summary.missing)|join(', ') }}</span>{% endif %}
+    {% if import_summary.non_numeric %}<br><span class="bad-text">Non-numeric: {{ import_summary.non_numeric|join(', ') }}</span>{% endif %}
+  </div>
+  {% endif %}
+
+  {% set st_results = results|selectattr('station', 'equalto', s.station)|list %}
+  {% if st_results %}
+  <details class="rules" open>
+    <summary><b>Rule checks &amp; calculations</b> ({{ st_results|selectattr('passed','equalto',1)|list|length }} pass,
+      {{ st_results|selectattr('passed','equalto',0)|list|length }} fail)</summary>
+    <table class="tbl compact">
+      <thead><tr><th></th><th>Check</th><th>Value</th><th>Limit</th><th>Formula</th></tr></thead>
+      {% for r in st_results %}
+        <tr class="{{ 'row-fail' if r.passed == 0 }}"><td>{{ passbadge(r.passed) }}</td><td>{{ r.label }}</td><td>{{ r.value }}</td><td>{{ r.limit_text }}</td><td class="formula">{{ r.formula }}</td></tr>
+      {% endfor %}
+    </table>
+  </details>
+  {% endif %}
+
+  {% set flds = station_fields(s.station) %}
+  {% set sections = [] %}{% for f in flds %}{% if f.section not in sections %}{% set _ = sections.append(f.section) %}{% endif %}{% endfor %}
+  {% for sec in sections %}
+    {% set sf = flds|selectattr('section', 'equalto', sec)|list %}
+    {% set nvals = sf|selectattr('key', 'in', readings)|list|length %}
+    <details class="readings" {% if nvals or loop.index <= 3 %}open{% endif %}>
+      <summary>{{ sec }} <small class="muted">({{ nvals }}/{{ sf|length }})</small></summary>
+      <table class="tbl compact grid">
+        <thead><tr><th>Field</th><th>Value</th><th>Unit</th><th>Imported</th><th>Source cell</th><th>Key</th><th></th></tr></thead>
+        <tbody>
+        {% for f in sf %}{% set r = readings.get(f.key) %}{% set req = is_required(f, tests) %}
+          <tr class="{% if req and not (r and r.current_value) %}row-missing{% endif %} {% if r and r.current_value != r.imported_value %}row-corrected{% endif %}"
+              data-key="{{ f.key }}">
+            <td>{{ f.label }}{% if req %} <i class="req">*</i>{% endif %}</td>
+            <td class="val mono">{{ r.current_value if r else '' }}</td>
+            <td>{{ f.unit }}</td>
+            <td class="mono muted">{% if r and r.current_value != r.imported_value %}<s>{{ r.imported_value }}</s>{% endif %}</td>
+            <td class="mono small">{% if r %}<span title="{{ r.file_name }}">{{ r.source_cell }}</span>{% endif %}</td>
+            <td class="mono small muted">{{ f.key }}</td>
+            <td class="nowrap">
+              {% if r and editable %}<button type="button" class="btn btn-xs js-edit" data-url="{{ url_for('engineer.correct', job_id=job.id, reading_id=r.id) }}"
+                    data-version="{{ r.version }}" data-label="{{ f.label }}" data-value="{{ r.current_value }}" data-type="{{ f.type }}">Edit</button>{% endif %}
+              {% if r and corr_counts.get(f.key) %}<button type="button" class="btn btn-xs js-history" data-url="{{ url_for('engineer.history', job_id=job.id, reading_id=r.id) }}">
+                {{ corr_counts[f.key] }} change{{ 's' if corr_counts[f.key] > 1 }}</button>{% endif %}
+            </td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </details>
+  {% endfor %}
+
+  {% set su = uploads|selectattr('station', 'equalto', s.station)|list %}
+  {% if su %}
+  <details class="uploads"><summary>Uploaded files ({{ su|length }}) - stored immutably with SHA-256</summary>
+    <table class="tbl compact">{% for u in su %}<tr><td>{{ u.uploaded_at|dt }}</td><td>{{ u.original_name }}</td><td>{{ u.username }}</td><td class="mono small">{{ u.sha256[:16] }}…</td></tr>{% endfor %}</table>
+  </details>
+  {% endif %}
+</section>
+{% endfor %}
+
+<section class="card lockbox">
+  {% set all_ok = stations|selectattr('verified')|list|length == stations|length %}
+  <div>
+    <h3>Lock job for review</h3>
+    <p class="muted">When every test is verified, lock the job. You cannot edit afterwards unless the admin returns it.</p>
+  </div>
+  {% if job.status == 'IN_TESTING' %}
+  <form method="post" action="{{ url_for('engineer.lock', job_id=job.id) }}" onsubmit="return confirm('Lock this job and send it for review?');">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="version" value="{{ job.version }}" class="js-job-version">
+    <button class="btn btn-primary" id="lock-job" {% if not all_ok %}disabled title="Verify every test first"{% endif %}>🔒 Lock job for review</button>
+  </form>
+  {% else %}
+    <span>{{ badge(job.status) }}</span>
+  {% endif %}
+</section>
+
+<dialog id="edit-dialog" class="dialog">
+  <form method="dialog" id="edit-form">
+    <h3>Correct value</h3>
+    <p id="edit-label" class="muted"></p>
+    <label>New value <input id="edit-value" required></label>
+    <label>Reason for correction (mandatory) <textarea id="edit-reason" rows="2" required placeholder="e.g. transcription error - value re-read from instrument display"></textarea></label>
+    <div class="dialog-err bad-text"></div>
+    <div class="actions"><button type="button" class="btn" id="edit-cancel">Cancel</button><button type="submit" class="btn btn-primary" id="edit-save">Save correction</button></div>
+  </form>
+</dialog>
+<dialog id="history-dialog" class="dialog"><h3>Change history</h3><div id="history-body"></div>
+  <div class="actions"><button class="btn" onclick="this.closest('dialog').close()">Close</button></div></dialog>
+{% endblock %}

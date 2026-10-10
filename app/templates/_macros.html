@@ -1,0 +1,28 @@
+{% macro badge(status) -%}
+<span class="badge st-{{ status|lower }}">{{ STATE_LABELS.get(status, status) }}</span>
+{%- endmacro %}
+
+{% macro timeline(job) -%}
+{% set order = TIMELINE %}
+{% set idx = order.index(job.status) if job.status in order else (order.index('IN_TESTING') if job.status == 'RETURNED' else -1) %}
+<ol class="timeline">
+  {% for s in order %}
+    <li class="{% if loop.index0 < idx or job.status == 'ISSUED' %}done{% elif loop.index0 == idx %}current{% endif %}">
+      <span class="dot"></span><span class="tl-label">{{ STATE_LABELS[s] }}</span>
+    </li>
+  {% endfor %}
+</ol>
+{% if job.status == 'REJECTED' %}<div class="flash flash-danger">Rejected: {{ job.reject_reason }}</div>{% endif %}
+{% if job.status == 'RETURNED' %}<div class="flash flash-warning">Returned to engineer for corrections{% if job.return_comment %}: {{ job.return_comment }}{% endif %}</div>{% endif %}
+{%- endmacro %}
+
+{% macro passbadge(p) -%}
+{% if p is none %}<span class="pf info">calc</span>{% elif p %}<span class="pf pass">PASS</span>{% else %}<span class="pf fail">FAIL</span>{% endif %}
+{%- endmacro %}
+
+{% macro verify_box(url) -%}
+<div class="verify-box" data-url="{{ url }}">
+  <button type="button" class="btn btn-sm js-verify">🔒 Verify integrity</button>
+  <div class="verify-result"></div>
+</div>
+{%- endmacro %}

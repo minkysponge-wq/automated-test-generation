@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}Welcome{% endblock %}
+{% block content %}
+<section class="hero">
+  <h1>Automated Test Report Generation</h1>
+  <p>From customer request to a sealed, tamper-evident CPRI test report - with logsheets imported from Excel,
+     automatic calculations and rule checks, and a complete audit trail.</p>
+</section>
+<section class="portal-grid">
+  <a class="portal-card customer" href="{{ url_for('customer.login') }}">
+    <div class="pc-icon">🏭</div>
+    <h2>Customer</h2>
+    <p>Submit a test request, track its status and download the sealed report.</p>
+    <span class="btn btn-primary">Customer login →</span>
+  </a>
+  <a class="portal-card engineer" href="{{ url_for('engineer.login') }}">
+    <div class="pc-icon">⚡</div>
+    <h2>Test Engineer</h2>
+    <p>Download logsheet templates, upload readings, correct and verify values, lock jobs.</p>
+    <span class="btn btn-primary">Engineer login →</span>
+  </a>
+  <a class="portal-card admin" href="{{ url_for('admin.login') }}">
+    <div class="pc-icon">🛡️</div>
+    <h2>Test In-charge / HOD</h2>
+    <p>Accept requests, assign engineers, review results and issue sealed reports.</p>
+    <span class="btn btn-primary">Admin login →</span>
+  </a>
+</section>
+<section class="flow card">
+  <h3>How it works</h3>
+  <ol class="flowsteps">
+    <li><b>Request</b><span>Customer fills the CPRI/QAF/01A form + proforma</span></li>
+    <li><b>Accept</b><span>Sample code &amp; report number allocated, work instruction issued</span></li>
+    <li><b>Test</b><span>Engineers upload Excel logsheets; values extracted by placeholder</span></li>
+    <li><b>Check</b><span>Calculations &amp; IS 1180 rule checks run automatically</span></li>
+    <li><b>Review</b><span>HOD reviews every value, correction and the live report preview</span></li>
+    <li><b>Seal</b><span>Report issued with SHA-256 seal; data frozen by database triggers</span></li>
+  </ol>
+</section>
+{% endblock %}

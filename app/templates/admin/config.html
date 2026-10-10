@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}Configuration{% endblock %}
+{% block content %}
+<div class="page-head"><h1>Configuration</h1></div>
+<form method="post" class="card">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <h2>Numbering &amp; report text</h2>
+  <div class="grid2">
+    <label>Report number prefix (lab code) <input name="lab_code" value="{{ s.lab_code }}"></label>
+    <label>Sample code prefix <input name="sample_prefix" value="{{ s.sample_prefix }}"></label>
+    <label>ULR prefix (footer) <input name="ulr_prefix" value="{{ s.ulr_prefix }}"></label>
+    <label>Test circuit diagram no. <input name="circuit_diagram_no" value="{{ s.circuit_diagram_no }}"></label>
+    <label class="span2">Standard (printed on report) <input name="standard_text" value="{{ s.standard_text }}"></label>
+    <label class="span2">Short-circuit standard <input name="sc_standard_text" value="{{ s.sc_standard_text }}"></label>
+  </div>
+  <h2>Rule limits <small class="muted">used by app/rules.py</small></h2>
+  <div class="grid3">
+    {% for key, default in defaults.items() if default is number %}
+      <label>{{ key.replace('_', ' ') }} <input name="{{ key }}" value="{{ s[key] }}" inputmode="decimal">
+        <small class="muted">default {{ default }}</small></label>
+    {% endfor %}
+  </div>
+  <button class="btn btn-primary">Save configuration</button>
+</form>
+<div class="card">
+  <h3>System</h3>
+  <p>PDF converter detected at start-up: <b>{{ converter[0] or 'none - reports are served as DOCX' }}</b> {{ converter[1] or '' }}</p>
+</div>
+{% endblock %}

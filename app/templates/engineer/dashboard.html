@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% from "_macros.html" import badge with context %}
+{% block title %}My jobs{% endblock %}
+{% block content %}
+<div class="page-head"><h1>My jobs</h1></div>
+{% if not rows %}
+  <div class="card empty">No jobs are assigned to you yet. The Test In-charge assigns jobs after accepting a request.</div>
+{% else %}
+<div class="card">
+<table class="tbl">
+  <thead><tr><th>Sample code</th><th>Test report no.</th><th>Customer</th><th>Sample</th><th>My role</th><th>Status</th><th></th></tr></thead>
+  <tbody>
+  {% for r in rows %}{% set f = r.form_json|fromjson %}
+  <tr class="{{ 'sealed' if r.is_sealed }}">
+    <td class="mono">{{ r.sample_code }}</td>
+    <td class="mono">{{ r.report_no }}</td>
+    <td>{{ f.customer_name }}</td>
+    <td>{{ f.rating }} · Sl. {{ f.serial_numbers }}</td>
+    <td>{{ r.my_role|capitalize }}{% if r.my_station %} ({{ STATIONS[r.my_station].title }}){% endif %}</td>
+    <td>{{ badge(r.status) }}</td>
+    <td><a class="btn btn-sm btn-primary" href="{{ url_for('engineer.job', job_id=r.id) }}">Open</a></td>
+  </tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{% endif %}
+{% endblock %}

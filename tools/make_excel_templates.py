@@ -23,7 +23,9 @@ import config  # noqa: E402
 from app import excel_io, fields, request_form  # noqa: E402
 from openpyxl.workbook.defined_name import DefinedName  # noqa: E402,F401
 
-DEMO_HEADER = {"series_no": "CPRIBLRSCL25T1654", "sample_code": "HVD25S0847", "customer": "M/s. A.P. Transformers, Chennai",
+# Series no. / sample code are left blank in the sample files so they can be uploaded to any demo job
+# (ATRG refuses a logsheet whose header sample code belongs to a different job).
+DEMO_HEADER = {"series_no": "", "sample_code": "", "customer": "M/s. A.P. Transformers, Chennai",
                "rating": "250 kVA, 11000/433 V, 3-phase", "serial_no": "1098"}
 
 
@@ -47,7 +49,7 @@ def main():
         for f in fields.station_fields(station):
             if f["key"] not in vals and ".hdr." not in f["key"]:
                 excel_io.fill_values(wb, {f["key"]: None})
-        excel_io.fill_values(wb, {f"{station}.hdr.{k}": v for k, v in DEMO_HEADER.items()})
+        excel_io.fill_values(wb, {f"{station}.hdr.{k}": (v or None) for k, v in DEMO_HEADER.items()})
         out = os.path.join(config.SAMPLE_DATA_DIR, meta["file"])
         wb.save(out)
         print("sample   ", out, len(vals), "values")

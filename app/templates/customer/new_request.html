@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+{% block title %}New test request{% endblock %}
+{% block content %}
+<div class="page-head">
+  <h1>New test request <small class="muted">CPRI/QAF/01A + Proforma for transformers</small></h1>
+</div>
+
+<div class="card excel-fill">
+  <div>
+    <b>Have the request in Excel?</b>
+    <span class="muted">Download the blank template, fill it, and upload it here to auto-fill this form.</span>
+  </div>
+  <div class="excel-actions">
+    <a class="btn btn-sm" href="{{ url_for('customer.request_template') }}">⬇ customer_request_template.xlsx</a>
+    <label class="btn btn-sm btn-primary file-btn">⬆ Upload filled Excel
+      <input type="file" id="request-excel" accept=".xlsx" data-url="{{ url_for('customer.parse_excel') }}">
+    </label>
+    <span id="excel-status" class="muted"></span>
+  </div>
+</div>
+
+<form method="post" enctype="multipart/form-data" id="request-form" class="reqform">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  {% for sec in sections %}
+  <fieldset class="card">
+    <legend>{{ sec.title }}</legend>
+    <div class="grid2">
+    {% for fd in sec.fields %}
+      {% set val = prefill.get(fd.name, '') if prefill else '' %}
+      {% if fd.type == 'drawings' %}
+        <div class="span2">
+          <div class="lbl">{{ fd.label }}</div>
+          <table class="tbl compact" id="drawings">
+            <thead><tr><th>Drawing number</th><th>Sheet no.</th><th>Revision</th><th></th></tr></thead>
+            <tbody>
+            {% set drs = prefill_drawings or [{'number':'','sheet':'','rev':''}] %}
+            {% for d in drs %}
+              <tr><td><input name="drawing_number" value="{{ d.number }}"></td><td><input name="drawing_sheet" value="{{ d.sheet }}"></td>
+                  <td><input name="drawing_rev" value="{{ d.rev }}"></td><td><button type="button" class="btn btn-sm js-delrow">✕</button></td></tr>
+            {% endfor %}
+            </tbody>
+          </table>
+          <button type="button" class="btn btn-sm" id="add-drawing">+ Add drawing</button>
+        </div>
+      {% elif fd.type == 'textarea' %}
+        <label class="span2">{{ fd.label }}{% if fd.required %} <i class="req">*</i>{% endif %}
+          <textarea name="{{ fd.name }}" rows="2" {% if fd.required %}required{% endif %}>{{ val }}</textarea></label>
+      {% elif fd.type == 'select' %}
+        <label>{{ fd.label }}{% if fd.required %} <i class="req">*</i>{% endif %}
+          <select name="{{ fd.name }}">
+            <option value=""></option>
+            {% for o in fd.options %}<option {% if val == o %}selected{% endif %}>{{ o }}</option>{% endfor %}
+          </select></label>
+      {% elif fd.type == 'radio' %}
+        <div class="radio-group {% if fd.options|length > 2 and fd.options[0] is not string %}span2{% endif %}">
+          <div class="lbl">{{ fd.label }}</div>
+          {% for o in fd.options %}
+            {% set ov = o if o is string else o[0] %}{% set ol = o if o is string else o[1] %}
+            <label class="radio"><input type="radio" name="{{ fd.name }}" value="{{ ov }}" {% if val == ov %}checked{% endif %}> {{ ol }}</label>
+          {% endfor %}
+        </div>
+      {% else %}
+        <label>{{ fd.label }}{% if fd.required %} <i class="req">*</i>{% endif %}
+          <input name="{{ fd.name }}" value="{{ val }}" {% if fd.type == 'number' %}inputmode="decimal"{% endif %} {% if fd.required %}required{% endif %}></label>
+      {% endif %}
+    {% endfor %}
+    </div>
+  </fieldset>
+  {% endfor %}
+
+  <fieldset class="card">
+    <legend>4. Tests requested <small class="muted">(Schedule of tests - IS 1180 (Part 1): 2014)</small></legend>
+    <label class="selectall"><input type="checkbox" id="select-all"> <b>Select all tests</b></label>
+    {% for grp, glabel in [('special','Special tests'),('type','Type tests'),('routine','Routine tests')] %}
+      <div class="test-group" data-group="{{ grp }}">
+        <label class="grp-toggle"><input type="checkbox" class="js-group" data-group="{{ grp }}"> <b>{{ glabel }}</b></label>
+        <div class="test-list">
+        {% for code, t in TESTS.items() if t.group == grp %}
+          <label class="test-item"><input type="checkbox" class="js-test" data-group="{{ grp }}" name="test_{{ code }}" value="1"
+                 {% if code in prefill_tests %}checked{% endif %}> {{ t.label }} <span class="clause">[{{ t.clause }}]</span></label>
+        {% endfor %}
+        </div>
+      </div>
+    {% endfor %}
+  </fieldset>
+
+  <fieldset class="card">
+    <legend>5. Documents (optional)</legend>
+    <p class="muted">Signed request form and drawings - PDF / JPG / PNG, max 20 MB each.</p>
+    <input type="file" name="documents" multiple accept=".pdf,.jpg,.jpeg,.png" id="documents">
+  </fieldset>
+
+  <fieldset class="card declaration">
+    <legend>Declaration</legend>
+    <p>{{ declaration }}</p>
+    <label class="check"><input type="checkbox" name="declaration" value="1" required> I accept the declaration above.</label>
+  </fieldset>
+  <div class="actions"><button class="btn btn-primary btn-lg" type="submit" id="submit-request">Submit test request</button></div>
+</form>
+{% endblock %}

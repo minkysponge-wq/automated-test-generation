@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}{{ meta.title }} - Register{% endblock %}
+{% block content %}
+<div class="auth-wrap">
+  <div class="auth-card card wide">
+    <div class="auth-icon">{{ meta.icon }}</div>
+    <h1>Register - {{ meta.title }}</h1>
+    {% if role == 'engineer' %}<p class="note">Engineer accounts must be approved by the Test In-charge before first login.</p>{% endif %}
+    {% if role == 'admin' %}<p class="note">Admin registration requires the invite code configured in <code>config.py</code>.</p>{% endif %}
+    <form method="post">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="grid2">
+        <label>Username <input name="username" value="{{ form.get('username','') }}" required pattern="[A-Za-z0-9_.\-]{3,32}"></label>
+        <label>Full name <input name="full_name" value="{{ form.get('full_name','') }}" required></label>
+        <label>Password (min 6) <input name="password" type="password" minlength="6" required></label>
+        <label>Repeat password <input name="password2" type="password" minlength="6" required></label>
+        <label>E-mail <input name="email" type="email" value="{{ form.get('email','') }}" required></label>
+        <label>Phone <input name="phone" value="{{ form.get('phone','') }}" required></label>
+        {% if role == 'customer' %}
+        <label>Company name <input name="company" value="{{ form.get('company','') }}" required></label>
+        <label class="span2">Company address <textarea name="address" rows="2" required>{{ form.get('address','') }}</textarea></label>
+        {% endif %}
+        {% if role == 'admin' %}
+        <label>Admin invite code <input name="invite_code" required></label>
+        {% endif %}
+      </div>
+      <button class="btn btn-primary btn-block" type="submit">Create account</button>
+    </form>
+    <p class="auth-alt">Already registered? <a href="{{ url_for(role ~ '.login') }}">Log in</a></p>
+  </div>
+</div>
+{% endblock %}
