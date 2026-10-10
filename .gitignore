@@ -1,0 +1,12 @@
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.pw-browsers/
+instance/
+storage/uploads/*
+storage/reports/*
+storage/sealed/*
+storage/preview/*
+!storage/*/.gitkeep
+e2e_output/
