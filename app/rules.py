@@ -1,69 +1,272 @@
 """
-Calculations and rule checks (IS 1180 (Part 1): 2014 based).
+Calculations and rule checks - declarative.
 
-`evaluate()` is a pure function of (readings, declared data, requested tests,
-limits) and returns
-    results : list of dicts  {station, rule_code, test, label, value, limit, formula, passed}
+    computed fields   field_registry rows with source=computed and a `formula`
+    rule checks       mappings/rules.yaml
+
+Both are evaluated with **simpleeval** (an AST-whitelisting evaluator - Python's
+eval is never used). `evaluate()` is a pure function of
+(readings, declared data, requested tests, limits) and returns
+
+    results : [{station, test, rule_code, label, value, limit, formula, passed}]
               passed = True / False / None (None = calculated value, no limit)
-    calc    : derived numbers used by the report (R75, NLC %, ratio rows, ...)
+    calc    : {computed field key: value}   (used by the report generator)
 
-Every limit comes from the admin Config page (db.get_settings), so the lab can
-tune them without touching code. The report's "Observations" columns are
-filled from these results - never typed by hand.
+Order: computed fields with stage=pre -> rules -> computed fields with
+stage=post (these may use rule outcomes, e.g. obs('tr_hv') -> "Within limits").
 """
+import functools
+import itertools
 import math
+import os
 
-from .fields import to_number
+import yaml
+from simpleeval import EvalWithCompoundTypes, NameNotDefined
 
-TAP_NAMES = {"n": "Principal", "h": "Highest", "l": "Lowest"}
-TAP_LT = {"nt": "Principal", "ht": "Highest", "lt": "Lowest"}
-SIDES = {"bt": "before SCW", "at": "after SCW"}
+import config
+from . import fields as F
+
+RULES_YAML = os.path.join(os.path.dirname(config.FIELDS_YAML), "rules.yaml")
+WORDS = ["Nil", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine", "Ten", "Eleven",
+         "Twelve", "Thirteen", "Fourteen", "Fifteen", "Sixteen", "Seventeen", "Eighteen", "Nineteen", "Twenty"]
+MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October",
+          "November", "December"]
 
 
+class Missing(Exception):
+    """A value needed by an expression has not been entered yet."""
+
+
+# =============================================================================
+# namespace: dotted keys -> attribute access  (wr.hv.n.bt.uv)
+# =============================================================================
+class Node:
+    __slots__ = ("_d", "_path", "_strict")
+
+    def __init__(self, d, path="", strict=True):
+        self._d, self._path, self._strict = d, path, strict
+
+    def __getattr__(self, name):
+        if name.startswith("_"):
+            raise AttributeError(name)
+        v = self._d.get(name, _ABSENT)
+        if v is _ABSENT:
+            if self._strict:
+                raise Missing(f"{self._path}{name}")
+            return None
+        if isinstance(v, dict):
+            return Node(v, f"{self._path}{name}.", self._strict)
+        if v is None and self._strict:
+            raise Missing(f"{self._path}{name}")
+        return v
+
+
+_ABSENT = object()
+
+
+def _tree(flat):
+    """{'a.b.c': 1} -> {'a': {'b': {'c': 1}}}. A key that is also a prefix keeps its value under '' ."""
+    root = {}
+    for key, val in flat.items():
+        cur = root
+        parts = key.split(".")
+        for p in parts[:-1]:
+            nxt = cur.get(p)
+            if not isinstance(nxt, dict):
+                nxt = {} if nxt is None else {"": nxt}
+                cur[p] = nxt
+            cur = nxt
+        if isinstance(cur.get(parts[-1]), dict):
+            cur[parts[-1]][""] = val
+        else:
+            cur[parts[-1]] = val
+    return root
+
+
+# =============================================================================
+# helper functions available to formulas and rules
+# =============================================================================
 def _f(x):
-    d = to_number(x)
+    d = F.to_number(x)
     return None if d is None else float(d)
 
 
-def _r(x, dp):
-    return None if x is None else round(x, dp)
+def make_functions(ctx):
+    """Functions exposed to expressions. `ctx` gives access to readings, form, results."""
+    form = ctx["form"]
+
+    def num(x, default=None):
+        v = _f(x)
+        if v is None:
+            if default is None:
+                raise Missing("number")
+            return float(default)
+        return v
+
+    def s(x, default=""):
+        return default if x in (None, "") else str(x)
+
+    def fmt(x, dp=None):
+        if x is None or x == "":
+            return "—"
+        return F.fmt(x, dp)
+
+    def avg(*xs):
+        xs = [num(x) for x in xs]
+        return sum(xs) / len(xs)
+
+    def unbalance(*xs):
+        xs = [num(x) for x in xs]
+        return (max(xs) - min(xs)) / (sum(xs) / len(xs)) * 100
+
+    def wtemp(side):
+        t = ctx["values"].get(f"wr.temp.{side}")
+        if t is not None:
+            return t
+        a, b = ctx["values"].get(f"wr.oil_top.{side}"), ctx["values"].get(f"wr.oil_bot.{side}")
+        if a is None or b is None:
+            raise Missing(f"wr.temp.{side}")
+        return (a + b) / 2
+
+    def r75(r, t):
+        return num(r) * (ctx["K"] + 75) / (ctx["K"] + num(t))
+
+    def rated_current():
+        kva, lv = _f(form.get("pf_kva")), _f(form.get("pf_lv_v"))
+        if not kva or not lv:
+            raise Missing("pf_kva/pf_lv_v")
+        phases = _f(form.get("pf_phases")) or 3
+        return kva * 1000 / (math.sqrt(3) * lv) if phases == 3 else kva * 1000 / lv
+
+    def tap_list():
+        return tap_percentages(form)
+
+    def n_taps():
+        return len(tap_list())
+
+    def tap_pct(i):
+        return tap_list()[int(i) - 1]
+
+    def pct_text(p):
+        return f"{p:+.1f}".replace("+0.0", "0.0")
+
+    def ratio_dev(i, side):
+        nom = nominal_ratio(form, tap_pct(i))
+        if nom is None:
+            raise Missing("rated voltages")
+        meas = [ctx["values"].get(f"ratio.t{int(i)}.{side}.{p}") for p in ("u", "v", "w")]
+        if any(m is None for m in meas):
+            raise Missing(f"ratio.t{i}.{side}")
+        devs = [(m - nom) / nom * 100 for m in meas]
+        return max(devs, key=abs)
+
+    def same_vg(a, b):
+        return str(a).replace(" ", "").lower() == str(b).replace(" ", "").lower()
+
+    def tapkey(text):
+        t = (str(text or "").upper().replace('"', " ").split() or ["NT"])[0]    # 'NT "2V"' -> NT
+        return {"NT": "nt", "HT": "ht", "LT": "lt", "N": "nt", "H": "ht", "L": "lt"}.get(t, "nt")
+
+    def req_pk(tap_text):
+        v = ctx["values"].get(f"sc.req.{tapkey(tap_text)}.pk")
+        if v is None:
+            raise Missing("sc.req.pk")
+        return v
+
+    def tap_name(text):
+        return {"nt": "Principal", "ht": "Highest", "lt": "Lowest"}[tapkey(text)]
+
+    def contains(text, *words):
+        t = str(text or "").lower()
+        return any(w.lower() in t for w in words)
+
+    def withstood_text(text):
+        return contains(text, "withstood", "no disruptive", "no breakdown")
+
+    def last_rise():
+        for h in range(16, -1, -1):
+            t, a = ctx["values"].get(f"tr.h{h:02d}.top"), ctx["values"].get(f"tr.h{h:02d}.aavg")
+            if t is not None and a is not None:
+                return t - a
+        raise Missing("hourly readings")
+
+    def max_defl(prefix):
+        pts = []
+        for i in range(1, 7):
+            a, b = ctx["values"].get(f"{prefix}.p{i}.init"), ctx["values"].get(f"{prefix}.p{i}.final")
+            if a is not None and b is not None:
+                pts.append(abs(a - b))
+        if not pts:
+            raise Missing(f"{prefix} reference points")
+        return max(pts)
+
+    def words(n):
+        n = int(n)
+        return WORDS[n] if 0 <= n < len(WORDS) else str(n)
+
+    def month_year(text):
+        try:
+            mm, yy = str(text).split("/")
+            return f"{MONTHS[int(mm) - 1]} {yy}"
+        except (ValueError, IndexError):
+            return s(text)
+
+    def phases_word():
+        return "Three" if str(form.get("pf_phases", "3")).strip() == "3" else "Single"
+
+    def sample_name():
+        smp = str(form.get("samples") or "Distribution Transformer")
+        return "Distribution Transformer" if "distribution" in smp.lower() else smp
+
+    def tap_text():
+        n = n_taps()
+        plus, minus = _f(form.get("pf_tap_plus")) or 0, _f(form.get("pf_tap_minus")) or 0
+        step = _f(form.get("pf_tap_step")) or 2.5
+        return f"+{plus:g} % to -{minus:g} % in steps of {step:g} % ({n} positions), off-circuit"
+
+    def join_nonempty(sep, *xs):
+        return sep.join(str(x) for x in xs if x not in (None, ""))
+
+    # ---- rule outcomes (stage=post formulas only)
+    def rule_ok(rid):
+        r = ctx["results_by_id"].get(rid)
+        return True if r is None or r["passed"] is None else bool(r["passed"])
+
+    def rules_ok(prefix):
+        return all(r["passed"] is not False for k, r in ctx["results_by_id"].items() if k.startswith(prefix))
+
+    def test_ok(code):
+        return all(r["passed"] is not False for r in ctx["results"] if r["test"] == code)
+
+    def all_rules_ok():
+        return not any(r["passed"] is False for r in ctx["results"])
+
+    def obs(rid):
+        return "Within limits" if rule_ok(rid) else "Not within limits"
+
+    def withstood(rid, fallback=""):
+        return "Withstood" if rule_ok(rid) and rid in ctx["results_by_id"] else s(fallback, "—")
+
+    return {
+        "num": num, "s": s, "f": fmt, "fmt": fmt, "avg": avg, "unbalance": unbalance, "wtemp": wtemp, "r75": r75,
+        "rated_current": rated_current, "n_taps": n_taps, "tap_pct": tap_pct, "pct_text": pct_text,
+        "nominal_ratio": lambda p: nominal_ratio(form, p), "ratio_dev": ratio_dev, "same_vg": same_vg,
+        "req_pk": req_pk, "tap_name": tap_name, "contains": contains, "withstood_text": withstood_text,
+        "last_rise": last_rise, "max_defl": max_defl, "words": words, "month_year": month_year,
+        "phases_word": phases_word, "sample_name": sample_name, "tap_text": tap_text, "join_nonempty": join_nonempty,
+        "rule_ok": rule_ok, "rules_ok": rules_ok, "test_ok": test_ok, "all_rules_ok": all_rules_ok, "obs": obs,
+        "withstood": withstood, "upper": lambda x: str(x).upper(), "abs": abs, "min": min, "max": max,
+        "round": round, "range": lambda a, b=None: list(range(int(a)) if b is None else range(int(a), int(b))),
+        "sqrt": math.sqrt, "len": len, "str": str,
+    }
 
 
-class _Ctx:
-    def __init__(self, readings, form, tests, limits):
-        self.rd, self.form, self.tests, self.lim = readings, form, set(tests), limits
-        self.results, self.calc = [], {}
-
-    def n(self, key):
-        return _f(self.rd.get(key))
-
-    def t(self, key):
-        return (self.rd.get(key) or "").strip()
-
-    def p(self, name, default=None):
-        v = _f(self.form.get(name))
-        return default if v is None else v
-
-    def add(self, station, test, code, label, value, limit, formula, passed):
-        self.results.append({"station": station, "test": test, "rule_code": code, "label": label,
-                             "value": "" if value is None else str(value), "limit": limit or "",
-                             "formula": formula or "", "passed": passed})
-
-    def missing(self, station, test, code, label, formula=""):
-        self.add(station, test, code, label, "awaiting data", "", formula, None)
-
-
+# =============================================================================
+# declared-data helpers (also used by the report generator)
+# =============================================================================
 def material_constant(form):
     """235 for copper, 225 for aluminium (IS 2026-1)."""
     return 225.0 if str(form.get("pf_winding_material", "")).lower().startswith("al") else 235.0
-
-
-def rated_lv_current(form):
-    kva, lv = _f(form.get("pf_kva")), _f(form.get("pf_lv_v"))
-    if not kva or not lv:
-        return None
-    phases = _f(form.get("pf_phases")) or 3
-    return kva * 1000 / (math.sqrt(3) * lv) if phases == 3 else kva * 1000 / lv
 
 
 def tap_percentages(form):
@@ -87,289 +290,158 @@ def nominal_ratio(form, pct):
     return hv_w / lv_w
 
 
-def _contains_any(text, words):
-    t = text.lower()
-    return any(w in t for w in words)
+def rated_lv_current(form):
+    kva, lv = _f(form.get("pf_kva")), _f(form.get("pf_lv_v"))
+    if not kva or not lv:
+        return None
+    return kva * 1000 / (math.sqrt(3) * lv)
 
 
-# ---------------------------------------------------------------------------
+# =============================================================================
+# rule definitions
+# =============================================================================
+@functools.lru_cache(maxsize=1)
+def _load_rules():
+    with open(RULES_YAML, encoding="utf-8") as fh:
+        return yaml.safe_load(fh)
+
+
+def reload_rules():
+    _load_rules.cache_clear()
+
+
+class _Fmt(dict):
+    """str.format_map helper that leaves unknown {names} untouched."""
+    def __missing__(self, k):
+        return "{" + k + "}"
+
+
+def _sub(text, mapping):
+    if not isinstance(text, str):
+        return text
+    try:
+        return text.format_map(_Fmt(mapping))
+    except (ValueError, IndexError, KeyError):
+        return text
+
+
+def _safe_format(template, values):
+    try:
+        return template.format(**values)
+    except (ValueError, KeyError, TypeError, IndexError):
+        v = values.get("value")
+        return "" if v is None else str(v)
+
+
+# =============================================================================
+# evaluation
+# =============================================================================
+def _typed_values(readings):
+    out = {}
+    for k, v in readings.items():
+        if v in (None, ""):
+            continue
+        f = F.field(k)
+        if f and f["dtype"] == "number":
+            n = _f(v)
+            out[k] = n if n is not None else v
+        else:
+            out[k] = v
+    return out
+
+
 def evaluate(readings, form, tests, limits):
-    c = _Ctx(readings, form, tests, limits)
-    K = material_constant(form)
-    c.calc["K"] = K
-    i_rated = rated_lv_current(form)
-    c.calc["i_rated"] = i_rated
-    tol_x = float(limits["loss_crosscheck_tolerance_pct"])
+    tests = set(tests)
+    values = _typed_values(readings)
+    ctx = {"form": form, "values": values, "K": material_constant(form), "results": [], "results_by_id": {}}
+    funcs = make_functions(ctx)
+    lim = {k: v for k, v in limits.items()}
+    calc = {}
 
-    # ---------------- 21.2 a) winding resistance -> corrected to 75 degC
-    if "winding_res" in c.tests:
-        st = "losses"
-        c.calc["hv_r75"], c.calc["lv_r75"] = {}, {}
-        for side in ("bt", "at"):
-            t = c.n(f"wr.temp.{side}")
-            if t is None:
-                tops = [c.n(f"wr.oil_top.{side}"), c.n(f"wr.oil_bot.{side}")]
-                t = sum(tops) / 2 if None not in tops else None
-            for tap in ("n", "h", "l"):
-                vals = [c.n(f"wr.hv.{tap}.{side}.{p}") for p in ("uv", "vw", "wu")]
-                if None in vals or t is None:
+    def names():
+        tree = _tree(values)
+        ns = {k: (Node(v, k + ".") if isinstance(v, dict) else v) for k, v in tree.items()}
+        ns.update({"form": Node(form, "form.", strict=False), "lim": Node(lim, "lim."), "K": ctx["K"],
+                   "True": True, "False": False, "None": None})
+        return ns
+
+    def run(expr, extra=None):
+        ev = EvalWithCompoundTypes(functions=funcs, names=dict(names(), **(extra or {})))
+        return ev.eval(expr)
+
+    def compute(stage):
+        pending = [f for f in F.computed_fields() if (f.get("stage") or "pre") == stage and f.get("formula")]
+        # several passes resolve formulas that depend on other computed fields
+        for _ in range(4):
+            progressed, still = False, []
+            for f in pending:
+                try:
+                    v = run(f["formula"])
+                except (Missing, NameNotDefined, ZeroDivisionError, TypeError, ValueError, AttributeError, KeyError,
+                        IndexError):
+                    still.append(f)
                     continue
-                avg = sum(vals) / 3
-                r75 = avg * (K + 75) / (K + t)
-                c.calc["hv_r75"].setdefault(side, {})[tap] = r75
-                c.add(st, "winding_res", f"hv_r75_{tap}_{side}", f"HV resistance at 75 °C, {TAP_NAMES[tap]} tap, {SIDES[side]}",
-                      _r(r75, 4), "", f"R75 = Ravg x ({K:g}+75)/({K:g}+{t:g}) = {avg:.4f} x {(K + 75) / (K + t):.5f}", None)
-            vals = [c.n(f"wr.lv.{side}.{p}") for p in ("uv", "vw", "wu")]
-            if None not in vals and t is not None:
-                avg = sum(vals) / 3
-                r75 = avg * (K + 75) / (K + t)
-                c.calc["lv_r75"][side] = r75
-                c.add(st, "winding_res", f"lv_r75_{side}", f"LV resistance at 75 °C, {SIDES[side]} (mΩ)", _r(r75, 4), "",
-                      f"R75 = Ravg x ({K:g}+75)/({K:g}+{t:g}) = {avg:.4f} x {(K + 75) / (K + t):.5f}", None)
-            # phase unbalance (informative check, 2 %)
-            hv_n = [c.n(f"wr.hv.n.{side}.{p}") for p in ("uv", "vw", "wu")]
-            if None not in hv_n:
-                avg = sum(hv_n) / 3
-                unb = (max(hv_n) - min(hv_n)) / avg * 100
-                c.add(st, "winding_res", f"hv_unbalance_{side}", f"HV phase resistance unbalance, principal tap, {SIDES[side]}",
-                      f"{unb:.2f} %", "<= 2.00 %", "(Rmax - Rmin) / Ravg x 100", unb <= 2.0)
+                calc[f["key"]] = v
+                if isinstance(v, (int, float)) or isinstance(v, str):
+                    values[f["key"]] = v
+                progressed = True
+            pending = still
+            if not progressed:
+                break
 
-    # ---------------- 21.2 b) voltage ratio + vector group
-    if "ratio" in c.tests:
-        st = "routine"
-        tol = float(limits["ratio_tolerance_pct"])
-        rows = []
-        for i, pct in enumerate(tap_percentages(form), start=1):
-            nom = nominal_ratio(form, pct)
-            row = {"tap": i, "pct": f"{pct:+.1f}".replace("+0.0", "0.0"), "nominal": nom}
-            for side in ("bt", "at"):
-                meas = [c.n(f"ratio.t{i}.{side}.{p}") for p in ("u", "v", "w")]
-                row[side] = meas
-                if None in meas or nom is None:
+    compute("pre")
+
+    spec = _load_rules()
+    labels = spec.get("labels", {})
+    for rule in spec.get("rules", []):
+        if rule["test"] not in tests:
+            continue
+        loops = rule.get("foreach") or {}
+        keys = list(loops)
+        lists = []
+        for k in keys:
+            src = loops[k]
+            if isinstance(src, str):
+                try:
+                    src = run(src)
+                except (Missing, NameNotDefined, Exception):
+                    src = []
+            lists.append(list(src))
+        combos = list(itertools.product(*lists)) if keys else [()]
+        for combo in combos:
+            sub = dict(zip(keys, (str(c) for c in combo)))
+            for k, v in list(sub.items()):
+                if k in labels and v in labels[k]:
+                    sub[f"{k}_label"] = labels[k][v]
+            rid = _sub(rule["id"], sub)
+            res = {"station": rule.get("station"), "test": rule["test"], "rule_code": rid,
+                   "label": _sub(rule.get("label", rid), sub), "value": "", "limit": "",
+                   "formula": _sub(rule.get("formula", ""), sub), "passed": None}
+            try:
+                local = {}
+                local["value"] = run(_sub(rule["value"], sub))
+                if rule.get("limit") is not None:
+                    local["limit"] = run(_sub(str(rule["limit"]), sub), local)
+                for vk, vexpr in (rule.get("vars") or {}).items():
+                    local[vk] = run(_sub(str(vexpr), sub), local)
+                fmtvals = dict(sub, **local)
+                res["label"] = _safe_format(res["label"], fmtvals) if "{" in res["label"] else res["label"]
+                res["value"] = _safe_format(rule.get("display", "{value}"), fmtvals)
+                res["limit"] = _safe_format(rule.get("limit_text", ""), fmtvals) if rule.get("limit_text") else ""
+                res["formula"] = _safe_format(res["formula"], fmtvals) if "{" in res["formula"] else res["formula"]
+                if rule.get("check"):
+                    res["passed"] = bool(run(_sub(rule["check"], sub), local))
+            except (Missing, NameNotDefined, ZeroDivisionError, TypeError, ValueError, AttributeError, KeyError,
+                    IndexError):
+                if not rule.get("report_missing"):
                     continue
-                devs = [(m - nom) / nom * 100 for m in meas]
-                worst = max(devs, key=abs)
-                c.add(st, "ratio", f"ratio_t{i}_{side}", f"Voltage ratio tap {i} ({row['pct']} %), {SIDES[side]}",
-                      f"{worst:+.2f} %", f"± {tol:.2f} % of {nom:.3f}",
-                      f"(measured - nominal)/nominal x 100; worst of U/V/W = {meas[devs.index(worst)]}", abs(worst) <= tol)
-            rows.append(row)
-        c.calc["ratio_rows"] = rows
-        declared = str(form.get("pf_vector_group", "")).replace(" ", "").lower()
-        for side in ("bt", "at"):
-            vg = c.t(f"vg.{side}")
-            if vg:
-                c.add(st, "ratio", f"vector_group_{side}", f"Vector group, {SIDES[side]}", vg, f"declared {form.get('pf_vector_group')}",
-                      "measured == declared", vg.replace(" ", "").lower() == declared)
+                res["value"] = "awaiting data"
+                res["label"] = res["label"].split("{")[0].strip() if "{" in res["label"] else res["label"]
+            ctx["results"].append(res)
+            ctx["results_by_id"][rid] = res
 
-    # ---------------- 21.2 d) no-load loss and current / 21.4 c) at 112.5 %
-    if "nll" in c.tests and i_rated:
-        lim = float(limits["nlc_limit_100_pct"])
-        for side in ("bt", "at"):
-            i0 = c.n(f"nll.{side}.i")
-            if i0 is None:
-                c.missing("losses", "nll", f"nlc100_{side}", f"No-load current at 100 % V, {SIDES[side]}")
-                continue
-            pct = i0 / i_rated * 100
-            c.calc[f"nlc100_pct_{side}"] = pct
-            c.add("losses", "nll", f"nlc100_{side}", f"No-load current at 100 % V, {SIDES[side]}", f"{pct:.2f} %",
-                  f"<= {lim:.1f} % ({i_rated * lim / 100:.3f} A)", f"I0/Irated x 100 = {i0} / {i_rated:.2f} x 100", pct <= lim)
-    if "nlc_112" in c.tests and i_rated:
-        lim = float(limits["nlc_limit_112_pct"])
-        i0 = c.n("nll.o112.i")
-        if i0 is None:
-            c.missing("losses", "nlc_112", "nlc112", "No-load current at 112.5 % V")
-        else:
-            pct = i0 / i_rated * 100
-            c.calc["nlc112_pct"] = pct
-            c.add("losses", "nlc_112", "nlc112", "No-load current at 112.5 % V", f"{pct:.2f} %",
-                  f"<= {lim:.1f} % ({i_rated * lim / 100:.3f} A)", f"I0/Irated x 100 = {i0} / {i_rated:.2f} x 100", pct <= lim)
-        if "nll" not in c.tests and c.n("nll.bt.i") is not None:
-            c.calc["nlc100_pct_bt"] = c.n("nll.bt.i") / i_rated * 100
-
-    # ---------------- 21.2 c) impedance / load loss  +  energy efficiency (total losses)
-    if "impedance" in c.tests:
-        st = "losses"
-        z_decl = c.p("pf_impedance")
-        tol = float(limits["impedance_tolerance_pct"])
-        for side in ("bt", "at"):
-            z = c.n(f"calc.nt.{side}.z75")
-            if z is None or z_decl is None:
-                continue
-            dev = (z - z_decl) / z_decl * 100
-            c.add(st, "impedance", f"impedance_{side}", f"% impedance at 75 °C, principal tap, {SIDES[side]}",
-                  f"{z:.3f} % ({dev:+.2f} %)", f"{z_decl:.2f} % ± {tol:.0f} %", "(Zmeas - Zdecl)/Zdecl x 100", abs(dev) <= tol)
-        for side in ("bt", "at"):
-            nll_p = c.n(f"nll.{side}.p")
-            for tap in ("nt", "ht", "lt"):
-                ll100, tl100 = c.n(f"calc.{tap}.{side}.ll100"), c.n(f"calc.{tap}.{side}.tl100")
-                if None not in (nll_p, ll100, tl100):
-                    calc_tl = nll_p + ll100
-                    diff = abs(calc_tl - tl100) / calc_tl * 100
-                    c.add(st, "impedance", f"xcheck_tl100_{tap}_{side}", f"Cross-check 100 % total loss, {TAP_LT[tap]} tap, {SIDES[side]}",
-                          f"{tl100:.2f} W (recomputed {calc_tl:.2f} W)", f"difference <= {tol_x} %", "NLL + LL100", diff <= tol_x)
-        max50, max100 = c.p("pf_max_tl50"), c.p("pf_max_tl100")
-        for side in ("bt", "at"):
-            tl50, tl100 = c.n(f"calc.nt.{side}.tl50"), c.n(f"calc.nt.{side}.tl100")
-            if tl50 is not None and max50:
-                c.add(st, "impedance", f"eel_tl50_{side}", f"Total loss at 50 % load, {SIDES[side]}", f"{tl50:.2f} W",
-                      f"<= {max50:g} W ({form.get('pf_eel', '')})", "NLL + LL at 50 % load (75 °C)", tl50 <= max50)
-            if tl100 is not None and max100:
-                c.add(st, "impedance", f"eel_tl100_{side}", f"Total loss at 100 % load, {SIDES[side]}", f"{tl100:.2f} W",
-                      f"<= {max100:g} W ({form.get('pf_eel', '')})", "NLL + LL at 100 % load (75 °C)", tl100 <= max100)
-
-    # ---------------- 21.2 e/f/g) dielectric tests
-    if "ir" in c.tests:
-        for side in ("bt", "at"):
-            for k, lab in (("hv_e", "HV-E"), ("lv_e", "LV-E"), ("hv_lv", "HV-LV")):
-                v = c.n(f"ir.{side}.{k}")
-                if v is not None:
-                    c.add("routine", "ir", f"ir_{k}_{side}", f"Insulation resistance {lab}, {SIDES[side]}", f"{v:g} GΩ", "", "measured at 5 kV", None)
-    if "induced" in c.tests:
-        lv = c.p("pf_lv_v")
-        for side in ("bt", "at"):
-            v, obs = c.n(f"iov.{side}.v"), c.t(f"iov.{side}.obs")
-            if v is None:
-                continue
-            ok_v = lv is None or v >= 2 * lv * 0.99
-            ok_o = _contains_any(obs, ("withstood", "no disruptive", "no breakdown"))
-            c.add("routine", "induced", f"induced_{side}", f"Induced over-voltage withstand, {SIDES[side]}",
-                  f"{v:g} V, {obs}", f">= 2 x {lv:g} V and withstood" if lv else "withstood",
-                  "applied >= 2 x rated LV; observation contains 'withstood'", ok_v and ok_o)
-    if "sep_source" in c.tests:
-        for w, decl in (("hvpf", "pf_hv_ac"), ("lvpf", "pf_lv_ac")):
-            need = c.p(decl)
-            for side in ("bt", "at"):
-                kv, obs = c.n(f"{w}.{side}.kv"), c.t(f"{w}.{side}.obs")
-                if kv is None:
-                    continue
-                ok = (need is None or kv >= need) and _contains_any(obs, ("withstood", "no disruptive", "no breakdown"))
-                c.add("routine", "sep_source", f"{w}_{side}", f"{'HV' if w == 'hvpf' else 'LV'} separate source withstand, {SIDES[side]}",
-                      f"{kv:g} kV, {obs}", f">= {need:g} kV and withstood" if need else "withstood",
-                      "applied >= declared AC level; observation contains 'withstood'", ok)
-
-    # ---------------- 21.4 b) short-circuit withstand
-    if "sc_withstand" in c.tests:
-        st = "sc"
-        lim = float(limits["reactance_change_limit_pct"])
-        c.calc["xchg"] = {}
-        for tap in ("nt", "ht", "lt"):
-            xb, xa = c.n(f"calc.{tap}.bt.x50"), c.n(f"calc.{tap}.at.x50")
-            if None in (xb, xa):
-                c.missing("losses", "sc_withstand", f"xchg_{tap}", f"% change in reactance, {TAP_LT[tap]} tap")
-                continue
-            ch = (xb - xa) / xb * 100
-            c.calc["xchg"][tap] = ch
-            c.add("losses", "sc_withstand", f"xchg_{tap}", f"% change in reactance after SC test, {TAP_LT[tap]} tap",
-                  f"{ch:+.3f} %", f"|ΔX| <= {lim:.1f} %", f"(Xbefore - Xafter)/Xbefore x 100 = ({xb} - {xa})/{xb} x 100", abs(ch) <= lim)
-        ptol = float(limits["sc_peak_tolerance_pct"])
-        tapmap = {"NT": "nt", "HT": "ht", "LT": "lt", "N": "nt", "H": "ht", "L": "lt"}
-        for n in range(2, 11):
-            sid = f"s{n:03d}"
-            pk = c.n(f"sc.{sid}.pk")
-            tap = tapmap.get(c.t(f"sc.{sid}.tap").upper().replace("\"", "").strip(), "nt")
-            req = c.n(f"sc.req.{tap}.pk")
-            if pk is None or req is None:
-                continue
-            dev = (pk - req) / req * 100
-            c.add(st, "sc_withstand", f"sc_peak_{sid}", f"Oscillogram {sid.upper()} peak current ({TAP_LT[tap]} tap)",
-                  f"{pk:.2f} kA ({dev:+.1f} %)", f"{req:.2f} kA ± {ptol:.0f} %", "(Ipk - Ipk,req)/Ipk,req x 100", abs(dev) <= ptol)
-        rms, dur, req = c.n("sc.s011.rms_avg"), c.n("sc.s011.dur"), c.n("sc.req.nt.rms")
-        if rms is not None and dur is not None and req is not None:
-            rtol, tmin = float(limits["sc_rms_tolerance_pct"]), float(limits["sc_thermal_min_duration_s"])
-            dev = (rms - req) / req * 100
-            c.add(st, "sc_withstand", "sc_thermal", "Thermal withstand shot S011", f"{rms:.2f} kA for {dur:.2f} s ({dev:+.1f} %)",
-                  f"{req:.2f} kA ± {rtol:.0f} %, >= {tmin:.1f} s", "rms within tolerance and duration >= minimum",
-                  abs(dev) <= rtol and dur >= tmin)
-        for k, lab in (("obs.during", "Observation during SC test"), ("obs.after", "Observation after SC test")):
-            obs = c.t(f"sc.{k}")
-            if obs:
-                c.add(st, "sc_withstand", k.replace(".", "_"), lab, obs, "no abnormality", "text check",
-                      _contains_any(obs, ("no abnormal", "nil", "no damage")))
-
-    # ---------------- 21.3 b) temperature rise
-    if "temp_rise" in c.tests:
-        st = "temprise"
-        std_oil, std_w = float(limits["std_top_oil_rise"]), float(limits["std_winding_rise"])
-        g_oil, g_w = c.p("pf_gtr_top_oil", std_oil), c.p("pf_gtr_winding", std_w)
-        c.calc["tr"] = {"g_oil": g_oil, "g_w": g_w, "std_oil": std_oil, "std_w": std_w}
-        top = c.n("tr.top_oil_rise")
-        if top is not None:
-            c.calc["tr"]["top"] = top
-            c.add(st, "temp_rise", "tr_top_oil", "Top-oil temperature rise", f"{top:.1f} °C",
-                  f"<= {min(g_oil, std_oil):g} °C (guaranteed {g_oil:g}, standard {std_oil:g})", "top oil - average ambient at steady state",
-                  top <= min(g_oil, std_oil))
-            last = None
-            for h in range(16, -1, -1):
-                t_, a_ = c.n(f"tr.h{h:02d}.top"), c.n(f"tr.h{h:02d}.aavg")
-                if t_ is not None and a_ is not None:
-                    last = (h, t_ - a_)
-                    break
-            if last:
-                c.add(st, "temp_rise", "tr_top_oil_xcheck", "Cross-check top-oil rise with last hourly reading",
-                      f"hour {last[0]}: {last[1]:.2f} °C", "within 0.3 °C of result", "top oil - avg ambient (logsheet)",
-                      abs(last[1] - top) <= 0.3)
-        amb = c.n("tr.amb_shutdown")
-        tcold = c.n("tr.cold.amb")
-        for w, lab in (("hv", "HV"), ("lv", "LV")):
-            rh, rc, corr = c.n(f"tr.hot.{w}"), c.n(f"tr.cold.{w}"), c.n(f"tr.corr.{w}") or 0.0
-            if None in (rh, rc, amb, tcold):
-                c.missing(st, "temp_rise", f"tr_{w}", f"{lab} winding temperature rise")
-                continue
-            rise = rh / rc * (K + tcold) - K - amb + corr
-            c.calc["tr"][w] = rise
-            c.add(st, "temp_rise", f"tr_{w}", f"{lab} winding temperature rise", f"{rise:.1f} °C",
-                  f"<= {min(g_w, std_w):g} °C (guaranteed {g_w:g}, standard {std_w:g})",
-                  f"Δθ = (Rh/Rc)(K+tc) - K - ta + corr = ({rh}/{rc})({K:g}+{tcold}) - {K:g} - {amb} + {corr}",
-                  round(rise, 1) <= min(g_w, std_w))
-            typed = c.n(f"tr.{w}_rise")
-            if typed is not None:
-                c.add(st, "temp_rise", f"tr_{w}_xcheck", f"Cross-check {lab} rise typed on logsheet", f"{typed:.1f} °C (calc {rise:.2f})",
-                      "within 0.2 °C", "logsheet vs recomputed", abs(typed - rise) <= 0.2)
-        tl, nl, fl = c.n("tr.total_loss"), c.n("tr.nll"), c.n("tr.fll")
-        if None not in (tl, nl, fl):
-            diff = abs(tl - (nl + fl)) / (nl + fl) * 100
-            c.add(st, "temp_rise", "tr_losses", "Total losses injected = NLL + FLL", f"{tl:.2f} W (NLL+FLL {nl + fl:.2f} W)",
-                  f"difference <= {tol_x} %", "Ptotal = P0 + Pk(75 °C, lowest tap)", diff <= tol_x)
-
-    # ---------------- 21.3 d) pressure (type) / 21.2 h) pressure (routine) / 21.2 j) oil leakage
-    if "pressure_type" in c.tests:
-        st = "pressure"
-        lim = float(limits["pressure_perm_defl_max_mm"])
-        for pre, lab in (("prt", "air pressure"), ("prv", "vacuum")):
-            perm = c.n(f"{pre}.perm_defl")
-            if perm is None:
-                c.missing(st, "pressure_type", f"{pre}_defl", f"Permanent deflection after {lab}")
-                continue
-            c.add(st, "pressure_type", f"{pre}_defl", f"Permanent deflection of flat plate after release of {lab}", f"{perm:.2f} mm",
-                  f"<= {lim:.1f} mm", "max |final - initial| over reference points", perm <= lim)
-            pts = [(c.n(f"{pre}.p{i}.init"), c.n(f"{pre}.p{i}.final")) for i in range(1, 7)]
-            pts = [abs(a - b) for a, b in pts if a is not None and b is not None]
-            if pts:
-                c.add(st, "pressure_type", f"{pre}_defl_xcheck", f"Cross-check {lab} deflection from reference points",
-                      f"max {max(pts):.2f} mm", "equals reported value ± 0.01", "max |final - initial|", abs(max(pts) - perm) <= 0.011)
-            obs = c.t(f"{pre}.obs")
-            if obs:
-                c.add(st, "pressure_type", f"{pre}_obs", f"Observation - {lab} test", obs, "no permanent deformation beyond limit",
-                      "text check", _contains_any(obs, ("no permanent", "within limit", "no leak")))
-    if "pressure_routine" in c.tests:
-        obs = c.t("prr.obs")
-        if obs:
-            c.add("pressure", "pressure_routine", "prr_obs", "Pressure test (routine) observation", obs,
-                  "no leakage / no permanent deformation", "text check", _contains_any(obs, ("no leak", "no permanent", "within limit")))
-        else:
-            c.missing("pressure", "pressure_routine", "prr_obs", "Pressure test (routine) observation")
-    if "oil_leak" in c.tests:
-        obs, head, test = c.t("ol.obs"), c.n("ol.head_kpa"), c.n("ol.test_kpa")
-        if head is not None and test is not None:
-            c.add("pressure", "oil_leak", "ol_pressure", "Oil leakage test pressure >= 2 x head pressure",
-                  f"{test:g} kPa (head {head:g} kPa)", f">= {2 * head:g} kPa", "test pressure at base >= 2 x normal head", test >= 2 * head - 0.05)
-        if obs:
-            c.add("pressure", "oil_leak", "ol_obs", "Oil leakage observation", obs, "no leakage", "text check",
-                  _contains_any(obs, ("no leak",)))
-        else:
-            c.missing("pressure", "oil_leak", "ol_obs", "Oil leakage observation")
-
-    return c.results, c.calc
+    compute("post")
+    return ctx["results"], calc
 
 
 def summary(results):
@@ -380,6 +452,5 @@ def summary(results):
 
 
 def test_ok(results, test_code):
-    """True if no rule for this requested test failed (used for report 'Observations')."""
     rs = [r for r in results if r["test"] == test_code and r["passed"] is not None]
     return all(r["passed"] for r in rs) if rs else True

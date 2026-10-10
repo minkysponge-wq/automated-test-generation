@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+{% set nav = 'admin.templates' %}
+{% set st = view.stats %}
+{% set m = view.mapping %}
+{% set editable = rec.status == 'draft' %}
+{% block title %}{{ rec.name }} v{{ rec.version }}{% endblock %}
+{% block heading %}{{ rec.name }} <span class="sub">version {{ rec.version }} - {{ rec.equipment_type }}</span>{% endblock %}
+{% block actions %}
+  <span class="badge {{ {'active': 'green', 'pending_hod': 'amber', 'draft': 'navy'}.get(rec.status, 'plain') }}">{{ {'active': 'Active', 'pending_hod': 'Awaiting HOD', 'draft': 'Draft', 'retired': 'Retired'}[rec.status] }}</span>
+  <a class="btn btn-sm" href="{{ url_for('admin.template_file', tid=rec.id, which='source') }}">Source DOCX</a>
+  <a class="btn btn-sm" href="{{ url_for('admin.template_file', tid=rec.id, which='dryrun') }}">Dry-run report</a>
+{% endblock %}
+{% block content %}
+<div class="facts">
+  <div><div class="k">Value places found</div><div class="v">{{ st.slots }}</div></div>
+  <div><div class="k">Required places</div><div class="v">{{ st.required }}</div></div>
+  <div><div class="k">Mapped (required)</div><div class="v">{{ st.mapped_required }} <span class="small muted">{{ '%.0f'|format(st.coverage * 100) }}%</span></div></div>
+  <div><div class="k">Mapped automatically on upload</div><div class="v small">{% if m.auto_stats %}{{ '%.0f'|format(m.auto_stats.coverage * 100) }}%{% else %}-{% endif %}</div></div>
+  <div><div class="k">Sections</div><div class="v">{{ (m.sections or [])|length }}</div></div>
+</div>
+{% for p in pending %}<div class="callout warn">Waiting for the HOD: {{ p.summary }}.</div>{% endfor %}
+{% if m.dry_run %}
+  {% if m.dry_run.unfilled %}<div class="callout warn"><strong>Dry run:</strong> {{ m.dry_run.unfilled|length }} unfilled place(s): {{ m.dry_run.unfilled[:5]|join('; ') }}</div>
+  {% else %}<div class="callout good">Dry run with the demo transformer: no unfilled places.</div>{% endif %}
+  {% for w in m.dry_run.warnings %}<div class="callout warn">{{ w }}</div>{% endfor %}
+{% endif %}
+{% if editable %}
+<div class="panel"><div class="panel-body inline-form" style="justify-content:space-between">
+  <span class="note">Click a highlighted place to change its binding. Green: mapped, amber: low confidence, red: required and unmapped, grey: optional.</span>
+  <div class="inline-form">
+    <form method="post" action="{{ url_for('admin.template_compile', tid=rec.id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn btn-sm">Compile and dry run</button></form>
+    <form method="post" action="{{ url_for('admin.template_submit', tid=rec.id) }}"
+          data-confirm-title="Send template for activation"
+          data-confirm="The HOD will review this template. Once activated, it is used for every report generated from then on, and it can no longer be edited.">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button class="btn btn-sm btn-primary" id="template-submit" {% if problems %}disabled title="{{ problems|join('; ') }}"{% endif %}>Send to HOD for activation</button></form>
+  </div>
+</div></div>
+{% if problems %}<div class="callout bad">Not ready for activation: {{ problems|join('; ') }}.</div>{% endif %}
+{% endif %}
+
+<div class="split-wide">
+  <div class="doc" id="doc" data-slot-url="{{ url_for('admin.template_slot', tid=rec.id) }}" data-editable="{{ 1 if editable else 0 }}">
+    {% set ns = namespace(sheet=0) %}
+    {% for b in view.blocks %}
+      {% if b.sheet != ns.sheet %}{% set ns.sheet = b.sheet %}<div class="sheet-mark">Sheet {{ b.sheet }}</div>{% endif %}
+      {% if b.type == 'p' %}
+        {% if b.text.strip() or b.slots %}<p>{{ b.text }} {% for s in b.slots %}{% include "admin/_slot.html" %}{% endfor %}</p>{% endif %}
+      {% else %}
+        {% if b.loop %}<div class="loop-note">Repeating row bound to list "{{ b.loop.list }}" ({{ b.loop.columns|join(', ') }})</div>{% endif %}
+        {% if b.schedule %}<div class="sched-note">Schedule of tests: rows are printed only for requested tests; the sheet column is computed.</div>{% endif %}
+        <table>
+          {% for row in b.rows %}<tr>{% for c in row %}<td>{{ c.text[:120] }}{% for s in c.slots %}{% include "admin/_slot.html" %}{% endfor %}</td>{% endfor %}</tr>{% endfor %}
+        </table>
+      {% endif %}
+    {% endfor %}
+    {% if view.footer %}<div class="sheet-mark">Header and footer</div><p>{% for s in view.footer %}{% include "admin/_slot.html" %}{% endfor %}</p>{% endif %}
+  </div>
+  <div>
+    <div class="panel">
+      <div class="panel-head"><h2>Sections</h2></div>
+      <table class="table compact">
+        <thead><tr><th>Id</th><th>Tests</th><th>Anchors</th></tr></thead>
+        {% for s in m.sections or [] %}<tr><td class="mono">{{ s.id }}</td><td>{{ s.tests|join(', ') }}</td>
+          {% set anchor = ('rows: ' ~ s.rows['from'] ~ ' to ' ~ s.rows['to']) if s.rows else (s.start.text ~ ' to ' ~ (s.end or s.start).text) %}
+          <td class="small"><div class="truncate" title="{{ anchor }}">{{ anchor }}</div></td></tr>
+        {% else %}<tr><td colspan="3" class="empty">No sections: every part is always printed.</td></tr>{% endfor %}
+      </table>
+      {% if editable %}
+      <form method="post" action="{{ url_for('admin.template_section', tid=rec.id) }}" class="panel-body">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <label>Section id <input name="id" placeholder="e.g. temp_rise"></label>
+        <label>Printed when these tests are requested <select name="tests" multiple size="5">{% for c, t in tests.items() %}<option value="{{ c }}">{{ t.name }}</option>{% endfor %}</select></label>
+        <label>Starts at the paragraph or table beginning with <input name="start_text"></label>
+        <label>Ends at the paragraph or table beginning with <input name="end_text"></label>
+        <div class="form-actions"><button class="btn btn-sm">Add section</button></div>
+      </form>
+      {% endif %}
+    </div>
+    <details class="panel">
+      <summary class="panel-head" style="cursor:pointer"><h2>Advanced settings (JSON)</h2></summary>
+      <form method="post" action="{{ url_for('admin.template_advanced', tid=rec.id) }}" class="panel-body">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <p class="note">Sections, manual text rules, repeating rows, the sheet marker and the QR picture.</p>
+        <textarea name="advanced" rows="18" class="mono" {% if not editable %}readonly{% endif %}>{{ advanced }}</textarea>
+        {% if editable %}<div class="form-actions"><button class="btn btn-sm">Save and compile</button></div>{% endif %}
+      </form>
+    </details>
+  </div>
+</div>
+
+<dialog id="slot-dialog" aria-labelledby="slot-title">
+  <form id="slot-form" method="dialog">
+    <div class="dialog-head" id="slot-title">Value place</div>
+    <div class="dialog-body">
+      <p class="small muted" id="slot-context"></p>
+      <div class="choice-group"><div class="lbl">Fill with</div>
+        {% for k, l in [('field', 'Registry field'), ('text', 'Fixed text'), ('expr', 'Expression'), ('ignore', 'Nothing (ignore)')] %}
+        <label class="choice"><input type="radio" name="slot_kind" value="{{ k }}"> {{ l }}</label>{% endfor %}
+      </div>
+      <label class="js-kind js-kind-field">Field <input id="slot-field" list="field-list" placeholder="Type to search keys and labels"></label>
+      <label class="js-kind js-kind-text hidden">Text <input id="slot-text"></label>
+      <label class="js-kind js-kind-expr hidden">Expression <input id="slot-expr" class="mono" placeholder="f(calc.nt.bt.z75, 3) + ' %'"><span class="hint">Safe expression over registry keys (simpleeval).</span></label>
+      <span class="error-text" id="slot-error"></span>
+    </div>
+    <div class="dialog-foot"><button type="button" class="btn" id="slot-clear">Clear</button><button type="button" class="btn" id="slot-cancel">Cancel</button><button type="submit" class="btn btn-primary">Save</button></div>
+  </form>
+</dialog>
+<datalist id="field-list">
+  {% for f in fields_list %}<option value="{{ f.key }}">{{ f.label }}</option>{% endfor %}
+</datalist>
+{% endblock %}

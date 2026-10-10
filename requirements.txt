@@ -5,6 +5,13 @@ docxtpl>=0.18
 python-docx>=1.1
 PyYAML>=6.0
 qrcode>=7.4
+simpleeval>=1.0
+rapidfuzz>=3.0
+pydantic>=2.5
+python-dotenv>=1.0
+google-genai>=1.0
+PyMuPDF>=1.24
+xlrd>=2.0          # reading legacy .xls uploads
 Pillow>=10.0
 # PDF export on Windows through MS Word (used only if LibreOffice is not installed)
 pywin32>=306; sys_platform == "win32"
@@ -13,4 +20,3 @@ docx2pdf>=0.1.8; sys_platform == "win32"
 pytest>=8.0
 requests>=2.31
 playwright>=1.45
-pymupdf>=1.24

@@ -1,8 +1,8 @@
 """
-Authentication helpers for the three portals.
+Authentication helpers for the four portals (customer, engineer, admin, HOD).
 
 Each role keeps its own key in the (signed) Flask session cookie:
-    session["customer_uid"], session["engineer_uid"], session["admin_uid"]
+    session["customer_uid"], session["engineer_uid"], session["admin_uid"], session["hod_uid"]
 so one browser can be logged in as customer in one tab and admin in another
 during the demo, while `@role_required("admin")` only ever looks at the
 admin key - a customer login can never open an admin page.
@@ -15,7 +15,7 @@ from werkzeug.security import check_password_hash, generate_password_hash
 
 from .db import get_db, now_ist
 
-ROLES = ("customer", "engineer", "admin")
+ROLES = ("customer", "engineer", "admin", "hod")
 
 
 def session_key(role):

@@ -1,52 +1,45 @@
 {% extends "base.html" %}
-{% from "_macros.html" import badge with context %}
-{% block title %}Admin dashboard{% endblock %}
+{% from "components/macros.html" import status_badge with context %}
+{% block title %}Requests{% endblock %}
 {% block content %}
-<div class="page-head"><h1>Test In-charge dashboard</h1></div>
-<div class="kpis">
-  <div class="kpi"><span class="kpi-n">{{ kpi.awaiting_accept }}</span><span class="kpi-l">Requests awaiting acceptance</span></div>
-  <div class="kpi"><span class="kpi-n">{{ kpi.in_testing }}</span><span class="kpi-l">Jobs in testing</span></div>
-  <div class="kpi accent"><span class="kpi-n">{{ kpi.pending_review }}</span><span class="kpi-l">Pending reviews</span></div>
-  <div class="kpi"><span class="kpi-n">{{ kpi.issued_month }}</span><span class="kpi-l">Reports issued this month</span></div>
-  <div class="kpi"><span class="kpi-n">{{ kpi.avg_tat_days if kpi.avg_tat_days is not none else '—' }}</span><span class="kpi-l">Avg. turnaround (days, submitted → issued)</span></div>
-  <div class="kpi {{ 'warn' if kpi.pending_engineers }}"><span class="kpi-n">{{ kpi.pending_engineers }}</span><span class="kpi-l"><a href="{{ url_for('admin.engineers') }}">Engineer accounts to approve</a></span></div>
+<div class="facts">
+  <div><div class="k">Awaiting acceptance</div><div class="v">{{ kpi.awaiting_accept }}</div></div>
+  <div><div class="k">In testing</div><div class="v">{{ kpi.in_testing }}</div></div>
+  <div><div class="k">To review</div><div class="v">{{ kpi.to_review }}</div></div>
+  <div><div class="k">Pending HOD approvals</div><div class="v">{{ kpi.with_hod }}</div></div>
+  <div><div class="k">Issued this month</div><div class="v">{{ kpi.issued_month }}</div></div>
+  <div><div class="k">Average turnaround</div><div class="v">{{ kpi.avg_tat_days if kpi.avg_tat_days is not none else '-' }}<span class="small muted"> days</span></div></div>
+  <div><div class="k">Engineer accounts to approve</div><div class="v"><a href="{{ url_for('admin.engineers') }}">{{ kpi.pending_engineers }}</a></div></div>
 </div>
 
-<div class="card">
-  <h3>Requests by status</h3>
-  <div class="statusbars">
-    {% for s, label in STATE_LABELS.items() %}
-      <a class="sb" href="{{ url_for('admin.dashboard', status=s) }}"><span class="badge st-{{ s|lower }}">{{ label }}</span><b>{{ counts.get(s, 0) }}</b></a>
-    {% endfor %}
-  </div>
-</div>
-
-<div class="card">
-  <h3>Search all records</h3>
-  <form class="searchbar" method="get">
-    <input name="q" value="{{ q }}" placeholder="Customer, serial no., sample code, report no., rating…">
-    <select name="status"><option value="">Any status</option>
-      {% for s, label in STATE_LABELS.items() %}<option value="{{ s }}" {% if s == status %}selected{% endif %}>{{ label }}</option>{% endfor %}
-    </select>
-    <label class="inline">From <input type="date" name="from" value="{{ d_from }}"></label>
-    <label class="inline">To <input type="date" name="to" value="{{ d_to }}"></label>
-    <button class="btn btn-primary">Search</button>
-    <a class="btn" href="{{ url_for('admin.dashboard') }}">Clear</a>
+<div class="panel">
+  <div class="panel-head"><h2>All requests</h2>
+    <div class="small muted">{% for s, label in STATE_LABELS.items() if counts.get(s) %}<a href="{{ url_for('admin.dashboard', status=s) }}">{{ label }}: {{ counts.get(s) }}</a>{% if not loop.last %} &middot; {% endif %}{% endfor %}</div></div>
+  <form class="searchbar" method="get" role="search">
+    <input name="q" value="{{ q }}" placeholder="Customer, serial number, reference, sample code, report number" aria-label="Search">
+    <select name="status" aria-label="Status"><option value="">Any status</option>
+      {% for s, label in STATE_LABELS.items() %}<option value="{{ s }}" {% if s == status %}selected{% endif %}>{{ label }}</option>{% endfor %}</select>
+    <input type="date" name="from" value="{{ d_from }}" aria-label="Submitted from">
+    <input type="date" name="to" value="{{ d_to }}" aria-label="Submitted to">
+    <button class="btn btn-primary btn-sm">Search</button>
+    <a class="btn btn-sm" href="{{ url_for('admin.dashboard') }}">Clear</a>
   </form>
-  <table class="tbl">
-    <thead><tr><th>#</th><th>Submitted</th><th>Customer</th><th>Sample / serial</th><th>Sample code</th><th>Report no.</th><th>Status</th><th></th></tr></thead>
+  <div class="table-wrap">
+  <table class="table">
+    <thead><tr><th>Reference</th><th>Submitted</th><th>Customer</th><th>Sample</th><th>Sample code</th><th>Test report no.</th><th>Status</th></tr></thead>
     <tbody>
     {% for r in rows %}{% set f = r.form_json|fromjson %}
-      <tr class="{{ 'sealed' if r.is_sealed }}">
-        <td>{{ r.id }}</td><td>{{ r.created_at|d }}</td>
-        <td>{{ f.customer_name }}<br><small class="muted">{{ r.customer_user }}</small></td>
-        <td>{{ f.rating }}<br><small class="muted">Sl. {{ f.serial_numbers }}</small></td>
-        <td class="mono">{{ r.sample_code or '—' }}</td><td class="mono">{{ r.report_no or '—' }}</td>
-        <td>{{ badge(r.status) }}{% if r.is_sealed %} 🔒{% endif %}</td>
-        <td><a class="btn btn-sm btn-primary" href="{{ url_for('admin.request_detail', job_id=r.id) }}">Open</a></td>
+      <tr class="row-link" data-href="{{ url_for('admin.request_detail', job_id=r.id) }}">
+        <td><a href="{{ url_for('admin.request_detail', job_id=r.id) }}">{{ r.ref or r.id }}</a></td>
+        <td class="nowrap">{{ r.created_at|d }}</td>
+        <td>{{ f.customer_name }}</td>
+        <td>{{ f.rating }}<div class="small muted">Serial {{ f.serial_numbers }}</div></td>
+        <td class="mono">{{ r.sample_code or '-' }}</td><td class="mono">{{ r.report_no or '-' }}</td>
+        <td>{{ status_badge(r.status) }}{% if r.is_sealed %} <span class="badge plain">Sealed</span>{% endif %}</td>
       </tr>
-    {% else %}<tr><td colspan="8" class="muted">No matching records.</td></tr>{% endfor %}
+    {% else %}<tr><td colspan="7" class="empty">No matching requests.</td></tr>{% endfor %}
     </tbody>
   </table>
+  </div>
 </div>
 {% endblock %}

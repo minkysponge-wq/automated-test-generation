@@ -1,19 +1,23 @@
-# CPRI ATRG — Automated Test Report Generation
+# CPRI ATRG - Automated Test Report Generation
 
-Hackathon prototype for the **Short Circuit Laboratory, CPRI Bengaluru**. A local-network web app that
-takes a transformer test job from the customer's request to a **sealed, tamper-evident test report**
-in the exact CPRI format (11 sheets), with:
+Hackathon prototype for the Short Circuit Laboratory, CPRI Bengaluru. It is a web application for the
+local network. It takes a power-transformer test job from the customer's request to a sealed, tamper-evident
+test report in the CPRI format.
 
-- three separate portals — **Customer**, **Test Engineer**, **Test In-charge / HOD (admin)**
-- Excel logsheet templates whose values are imported **by placeholder**, not by cell position
-- automatic calculations and IS 1180 rule checks (pass/fail with the limit and formula shown)
-- atomic sample-code / report-number allocation (`HVD25S0847`, `CPRIBLRSCL25T1654`)
-- optimistic locking for many simultaneous users, a server-side state machine
-- SHA-256 sealing, database triggers that block any change after issue, a hash-chained audit log
+- four portals: Customer, Test Engineer, Test In-charge (admin) and Head of Division (HOD)
+- every admin action that matters takes effect only after HOD approval; only the HOD's authorization issues a report
+- any document - PDF, photo, Excel in any layout, CSV - is read automatically (Google Gemini, optional) at every
+  upload point: request form, logsheets per test or all at once, work instruction; ATRG's own Excel templates
+  are read without AI. Every value is shown beside its source and stays unconfirmed until a person checks it
+- readings come in through Excel logsheets generated from a field registry, or from scanned / foreign documents
+- calculations and IS 1180 rule checks are declared in YAML and evaluated safely
+- report formats are data: upload a revised DOCX and it is mapped automatically, reviewed, approved and used
+- atomic numbering (`HVD25S0847`, `CPRIBLRSCL25T1654`), optimistic locking, SHA-256 sealing,
+  database triggers that freeze issued data, and a hash-chained activity log
 
 ## 1. Install
 
-Requires Python 3.10+ on Windows (macOS/Linux also work).
+Python 3.10 or newer on Windows (macOS and Linux also work).
 
 ```bash
 python -m venv .venv
@@ -25,10 +29,37 @@ python -m venv .venv
 pip install -r requirements.txt
 ```
 
-**PDF export** is detected at start-up: LibreOffice (`soffice`) if installed, otherwise Microsoft Word
-(via COM, as `docx2pdf` does). If neither exists the reports are served as DOCX and a notice is shown.
+**PDF export** is detected at start-up: LibreOffice (`soffice`) when installed, otherwise Microsoft Word
+(as `docx2pdf` does). When neither is available, reports are served as DOCX with a notice. The result is
+shown on the HOD system page.
 
-## 2. Run
+## 2. Configure (optional)
+
+```bash
+copy .env.example .env
+```
+
+| Setting | Meaning |
+|---|---|
+| `GEMINI_API_KEY` | Google AI Studio key (kept only in `.env`, which is git-ignored; diagnostics show the last 4 characters). Leave empty to run fully offline with manual entry. |
+| `AI_ENABLED` | `false` guarantees that no document is ever sent to Gemini, even with a key; users see "Automatic reading is turned off by the administrator". |
+| `GEMINI_USE_VERTEX` | `auto` (default) tries AI Studio, then Vertex AI; `true` / `false` forces one. |
+| `GEMINI_MODEL_FAST`, `GEMINI_MODEL_PRO` | Leave empty to use the newest Flash / Pro model the key can reach (found at start-up), or set model ids. |
+
+Check the connection and see what is read from a document:
+
+```bash
+python manage.py check-ai
+```
+```bash
+python manage.py check-ai --file reference/Logsheet_for_short_circuit.pdf --kind logsheet:sc
+```
+
+`python tools/ai_accuracy.py` reads all reference documents and writes the accuracy table to
+`docs/ai_accuracy.md`.
+| `ATRG_PORT` | Port (default 5000). |
+
+## 3. Run
 
 ```bash
 python seed.py --reset
@@ -37,68 +68,88 @@ python seed.py --reset
 python run.py
 ```
 
-`seed.py` creates the demo accounts and runs the real workflow once for the demo transformer, so an
-issued report (`CPRIBLRSCL25T1654`) already exists. `run.py` starts **waitress** on `0.0.0.0:5000`
-with 8 threads and prints both URLs:
-
-```
- Local:   http://localhost:5000
- LAN:     http://192.168.1.23:5000   <- open this on other computers
-```
-
-Port: `python run.py --port 8080` or `set ATRG_PORT=8080`.
+`seed.py` creates the demo accounts and registers report template v1. It also runs the real workflow for the
+demo transformer twice: `CPRIBLRSCL25T1654` is issued and sealed, and `CPRIBLRSCL25T1655` is waiting in technical
+review. `run.py` starts waitress on `0.0.0.0:5000` with 8 threads and prints the local and LAN addresses.
 
 ### Demo accounts
 
 | Portal | Username | Password | Notes |
 |---|---|---|---|
-| Admin (Test In-charge / HOD) | `admin` | `admin123` | |
-| Engineer | `engineer1` | `eng123` | approved |
-| Engineer | `engineer2` | `eng234` | **pending** — approve it on *Admin → Engineers* |
-| Customer | `customer1` | `cust123` | A.P. Transformers |
+| HOD | `hod` | `hod12345` | approves admin actions and authorizes reports |
+| Test In-charge | `admin` | `admin12345` | |
+| Test In-charge | `admin2` | `admin23456` | waiting for HOD approval (in the HOD inbox) |
+| Engineer | `engineer1` | `eng12345` | |
+| Engineer | `engineer2` | `eng23456` | waiting for admin approval |
+| Customer | `customer1` | `cust12345` | A.P. Transformers |
 
-New admins need the invite code `CPRI-ADMIN-2026` (`config.py` / `ATRG_ADMIN_INVITE_CODE`).
-New engineers stay pending until an admin approves them.
+Account rules: customers are active immediately; engineers wait for an admin; admins wait for the HOD.
+There is no public HOD registration. Create the first HOD with `python manage.py create-hod`; an HOD can
+create further HODs on the Accounts page. Passwords need at least 8 characters.
 
-## 3. Use it from other computers (LAN)
+## 4. Use from other computers (LAN)
 
-1. Connect all computers to the same Wi-Fi / LAN. The laptop running `run.py` is the server.
-2. Allow port 5000 through Windows Firewall on the server laptop (PowerShell **as Administrator**):
+1. Connect all computers to the same Wi-Fi or LAN. The laptop running `run.py` is the server.
+2. Allow the port through Windows Firewall on the server (PowerShell as Administrator):
 
 ```bash
 netsh advfirewall firewall add rule name="CPRI ATRG 5000" dir=in action=allow protocol=TCP localport=5000
 ```
 
-3. On the other computers open the **LAN** URL printed by `run.py` (e.g. `http://192.168.1.23:5000`).
-   If Windows asked "Allow Python on private networks?" on first start, click **Allow**.
+3. Open the LAN address printed by `run.py` (for example `http://192.168.1.23:5000`) on the other computers.
 
-Each role keeps its own session key, so one browser can be logged in as customer in one tab and admin
-in another during the demo.
+Each role uses its own session key, so one browser can be signed in to all four portals in separate tabs.
 
-## 4. Two-minute demo script
+## 5. Three-minute demo script
 
 | Time | Who | Do |
 |---|---|---|
-| 0:00 | Customer | Landing page → **Customer** → log in `customer1`. **New test request** → *Upload filled Excel* → pick `sample_data/customer_request_filled.xlsx` (form fills itself) → *Select all tests* is ticked → tick declaration → **Submit**. Timeline shows *Submitted*. |
-| 0:25 | Admin | New tab → **Admin** → `admin`. Dashboard KPIs → open the request → condition *Suitable / Yes* → **Accept** → sample code `HVD26S0847` + report no `CPRIBLRSCL26T1654` allocated, work instruction downloadable. Choose *P. Naveenkumar* → **Assign**. |
-| 0:45 | Engineer | New tab → **Engineer** → `engineer1` → open the job. On each of the 5 tabs upload the matching file from `sample_data/` (each tab has a template download with the header pre-filled). Rule badges turn green. |
-| 1:10 | Engineer | On *Losses* click **Edit** on "Top oil temperature After STC", change 27.0 → 27.1, give a reason → shown as corrected, history kept. **Mark verified** on each tab → **Lock job for review**. |
-| 1:30 | Admin | Open the job → review: rule results with limits, corrections history, **Generate preview** (filled CPRI report) → **Approve & Issue**. |
-| 1:45 | Customer | Refresh: *Report issued* → **Download PDF**, **Verify integrity** → ✅. Admin → *Activity log* → **Verify chain** ✅. Try to edit after issue: blocked (UI + database trigger). |
+| 0:00 | HOD | `/hod`: show the approval inbox (pending admin account) and Settings. Switch on "Accept test request" so it also needs the HOD. |
+| 0:20 | Customer | `/customer`, New request. Upload `reference/Customer_request_form.pdf`. Press Read document: with a Gemini key the form fills itself beside the scan; "Please check" fields are outlined amber and focusing a field highlights its source. Without a key, read `sample_data/customer_request_filled.xlsx` the same way (no AI needed). Select all tests, accept the declaration, submit. |
+| 0:50 | Admin | `/admin`: open the request, Accept (goes to the HOD); HOD approves; admin assigns P. Naveenkumar. |
+| 1:10 | Engineer | `/engineer`: on each tab upload the matching `sample_data/*.xlsx`. Rule checks turn to Pass. Correct one value with a reason, mark each test verified, Lock job (confirmation states what is frozen). |
+| 1:50 | Admin | Technical review: rule results with limits, correction history, Generate preview, Forward for authorization. |
+| 2:10 | HOD | Approvals: open the request, open the preview, Authorize and issue. The report is sealed. |
+| 2:25 | Customer | Download the PDF, Verify integrity. HOD: Activity log, Verify chain. |
+| 2:40 | Admin | Report templates: upload a revised format (`e2e_output/Transformer_Test_report_format_revised.docx`, created by the end-to-end test). About 100 % is mapped automatically; send it to the HOD, who activates it. Forward `CPRIBLRSCL25T1655`; the HOD authorizes; the report uses the new layout. |
 
-## 5. Tests
+## 6. How to change the report format
+
+1. Prepare the new DOCX in Word. Leave value cells empty or put `XXXX` where values go. Keep "TEST REPORT"
+   at the top of each sheet, or set another sheet marker in the template settings.
+2. Admin portal, **Report templates**, upload it. The system parses it and maps every value place to the
+   field registry. It reuses the mapping of the active version, matches labels by fuzzy comparison and can
+   optionally ask Gemini. It then compiles the template and makes a dry run with the demo transformer.
+3. Open the draft. Green places are mapped, amber ones have low confidence, red ones are required and
+   unmapped. Click a place to bind it to a field, a fixed text or a safe expression. Add or adjust
+   **sections**: anchored by text, a section is printed only when its tests are requested. Sheet numbers,
+   the schedule of tests and the document counts are computed automatically.
+4. **Compile and dry run** until no place is left unfilled, then **Send to HOD for activation**.
+5. After HOD approval the new version is used for every report generated from then on. Issued reports keep
+   the template id, version and hash they were made with; retired templates are never deleted.
+
+A new value that does not exist yet is added under **Field registry** (also HOD-approved). A new reading
+appears automatically in the Excel logsheet of its station. A computed value is defined with a formula.
+New rule checks go into `mappings/rules.yaml`.
+
+To rebuild template v1 from the reference format: `python manage.py import-template`
+(review decisions are in `report_templates/v1/review.yaml`).
+
+## 7. Tests
 
 ```bash
 python -m pytest
 ```
 
-Covers: 50 concurrent number allocations, sealed-record triggers (UPDATE/DELETE after issue fails
-in SQLite), audit chain verification and tamper detection, Excel import round-trip (incl. moved cells,
-lost defined names, non-numeric values, wrong sample code), report placeholder completeness and key
-values (HV rise 39.7 °C, ΔX −0.163 %, NLC 1.28 %), workflow / role separation / HTTP 409 conflicts,
-and the rule calculations.
+Covers numbering under 50 concurrent allocations, the sealed-record database triggers, the audit chain and
+tamper detection, and the Excel round-trip. It also covers report completeness and key values (HV rise
+39.7 °C, ΔX −0.163 %, NLC 1.28 %), approval enforcement (an admin can not issue without the HOD, an engineer
+can not edit after lock, optional approval toggles), registry changes reaching the Excel template, template
+adaptability, the rules, and document intake (own templates are read with a client that raises, so no AI
+call is possible; `AI_ENABLED=false` falls back to manual entry). The live accuracy test runs only with a key
+and `set ATRG_TEST_AI=true`.
 
-End-to-end browser check (Playwright, server must be running):
+End-to-end browser run (server running, after `python seed.py --reset`):
 
 ```bash
 python -m playwright install chromium
@@ -107,66 +158,29 @@ python -m playwright install chromium
 python tests/e2e/e2e_flow.py
 ```
 
-It registers a customer, submits a request with all tests, accepts and assigns, uploads all
-`sample_data` logsheets, corrects a value with a reason, verifies, locks, previews and issues,
-downloads the PDF, verifies integrity, proves an edit after issue is blocked, and renders the PDF
-pages to `e2e_output/` for visual inspection.
+With `set ATRG_E2E_AI=true` it also reads the scanned request form, the scanned routine logsheet and a
+foreign-layout workbook and saves the review screens (`check1/3/5_*.png`). The run covers the whole flow,
+including the template change, and writes screenshots of every main screen
+at 1440×900 and 1280×720, plus the issued PDF pages, to `e2e_output/`.
 
-## 6. Project layout
+## 8. Project layout
 
 ```
-run.py  config.py  seed.py  requirements.txt
+run.py  manage.py  config.py  seed.py  requirements.txt  .env.example
 app/
-  __init__.py      Flask factory, CSRF, error handlers
-  db.py schema.sql SQLite (WAL) + sealing/append-only triggers
-  auth.py          per-role logins, @role_required
-  workflow.py      state machine + optimistic locking
-  numbering.py     atomic sample code / report number
-  jobs.py          accept, assign, import, correct, verify, lock, issue, amend
-  excel_io.py      logsheet templates + placeholder importer
-  rules.py         calculations and limit checks
-  report.py        snapshot -> DOCX (docxtpl) -> PDF, work instruction
-  audit.py         hash-chained activity log
-  integrity.py     hashing + verification
-  request_form.py  customer request form definition (HTML + Excel)
-  routes/          public, customer, engineer, admin, api
-  templates/ static/
-mappings/fields.yaml          single source of truth for 681 readings
-templates/report_template.docx  CPRI format with Jinja tags (made by tools/make_template.py)
-templates/excel/*.xlsx        logsheet templates (made by tools/make_excel_templates.py)
-sample_data/*.xlsx            filled logsheets for the real demo transformer (Sl. No. 1098)
-reference/                    the scanned CPRI formats and the original report template
-storage/{uploads,reports,sealed,preview}/
-docs/architecture.md          data-flow and module diagrams
-tests/
+  __init__.py  db.py  schema.sql  auth.py  workflow.py  approvals.py  approval_types.py  notify.py
+  numbering.py  jobs.py  excel_io.py  rules.py  report.py  audit.py  integrity.py  fields.py  request_form.py
+  ai/         client.py  intake.py  template_mapper.py  prompts/ (versioned .md)
+  reporting/  docx_parser.py  automapper.py  sections.py  compiler.py  generator.py  registry.py  templates.py
+  routes/     public.py  customer.py  engineer.py  admin.py  hod.py  api.py  common.py
+  templates/  static/
+mappings/          fields.yaml (registry seed)  tests.yaml (test catalogue)  rules.yaml
+report_templates/  v1/ source.docx  review.yaml  mapping.json  compiled.docx  dry_run.docx
+tools/             import_template.py  make_excel_templates.py
+sample_data/       filled logsheets + demo request for transformer Sl. No. 1098
+reference/         the scanned CPRI formats and the original report template
+docs/              PLAN.md  architecture.md
+tests/             pytest suite + e2e/e2e_flow.py
 ```
 
-Regenerate the generated assets after changing `fields.yaml` or the reference template:
-
-```bash
-python tools/make_excel_templates.py
-```
-```bash
-python tools/make_template.py
-```
-
-## 7. Architecture
-
-See [docs/architecture.md](docs/architecture.md) for the Mermaid diagrams. In short:
-
-```mermaid
-flowchart LR
-  Customer -->|request| DB[(SQLite WAL)]
-  Admin -->|accept: numbers + WI, assign| DB
-  Engineer -->|Excel logsheets| Import[placeholder importer] --> DB
-  DB --> Rules[rules.py] --> DB
-  Admin -->|issue| Snap[canonical snapshot] --> Report[DOCX/PDF] --> Seal[SHA-256 + is_sealed + triggers]
-  Seal --> Customer
-```
-
-## 8. Notes and limits of the prototype
-
-- Scanned logsheets are not OCR'd; readings come in through the structured Excel templates.
-- Corrections after issue create an **amended report** (`…/A1`) that references the original; the original is never modified.
-- The QR code on the cover and the notes sheet points to `/verify/<report no>` on the server that issued it.
-- Limits (impedance tolerance, temperature-rise limits, ΔX, NLC %, …) are editable on *Admin → Config*.
+See [docs/architecture.md](docs/architecture.md) for the module, data-flow and approval-flow diagrams.

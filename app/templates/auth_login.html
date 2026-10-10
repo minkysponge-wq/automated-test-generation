@@ -1,19 +1,22 @@
 {% extends "base.html" %}
-{% block title %}{{ meta.title }} - Login{% endblock %}
+{% block title %}Sign in - {{ meta.long }}{% endblock %}
 {% block content %}
-<div class="auth-wrap">
-  <div class="auth-card card">
-    <div class="auth-icon">{{ meta.icon }}</div>
-    <h1>{{ meta.title }}</h1>
-    <p class="muted">{{ meta.blurb }}</p>
-    <form method="post" autocomplete="on">
-      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-      <label>Username <input name="username" required autofocus></label>
-      <label>Password <input name="password" type="password" required></label>
-      <button class="btn btn-primary btn-block" type="submit">Log in</button>
-    </form>
-    <p class="auth-alt">No account? <a href="{{ url_for(role ~ '.register') }}">Register as {{ role }}</a></p>
-    <p class="auth-alt small"><a href="{{ url_for('public.landing') }}">← choose another portal</a></p>
+<div class="auth">
+  <div class="panel">
+    <div class="panel-body">
+      <h1>{{ meta.long }}</h1>
+      <p class="muted">{{ meta.blurb }}</p>
+      <form method="post" autocomplete="on" style="margin-top:16px">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <label>Username <input name="username" required autofocus autocomplete="username"></label>
+        <label>Password <input name="password" type="password" required autocomplete="current-password"></label>
+        <div class="form-actions" style="justify-content:space-between">
+          {% if role != 'hod' %}<a href="{{ url_for(role ~ '.register') }}">Create an account</a>{% else %}<span class="small muted">HOD accounts are created by an existing HOD.</span>{% endif %}
+          <button class="btn btn-primary" type="submit">Sign in</button>
+        </div>
+      </form>
+    </div>
   </div>
+  <p class="small"><a href="{{ url_for('public.landing') }}">Other portals</a></p>
 </div>
 {% endblock %}

@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% from "components/macros.html" import approval_badge with context %}
+{% block title %}Approvals{% endblock %}
+{% block content %}
+<nav class="tabs">
+  <a href="{{ url_for('hod.approval_list') }}" class="{{ 'active' if show == 'pending' }}">Pending</a>
+  <a href="{{ url_for('hod.approval_list', show='all') }}" class="{{ 'active' if show != 'pending' }}">History</a>
+</nav>
+<div class="panel">
+  {% if rows %}
+  <table class="table">
+    <thead><tr><th>Request</th><th>Type</th><th>Requested by</th><th>Requested</th><th class="num">Age</th><th>Status</th>{% if show != 'pending' %}<th>Decided by</th>{% endif %}</tr></thead>
+    <tbody>
+    {% for a in rows %}
+      <tr class="row-link" data-href="{{ url_for('hod.approval_detail', aid=a.id) }}">
+        <td><a href="{{ url_for('hod.approval_detail', aid=a.id) }}">{{ a.summary }}</a></td>
+        <td>{{ labels.get(a.type, a.type) }}</td><td>{{ a.requester or '-' }}</td><td class="nowrap">{{ a.requested_at|dt }}</td>
+        <td class="num">{{ age(a.requested_at) if a.status == 'pending' else '' }}</td><td>{{ approval_badge(a.status) }}</td>
+        {% if show != 'pending' %}<td>{{ a.decider or '' }}</td>{% endif %}
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}<div class="empty">{{ 'Nothing is waiting for your approval.' if show == 'pending' else 'No approval requests yet.' }}</div>{% endif %}
+</div>
+{% endblock %}

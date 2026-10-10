@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}Report templates{% endblock %}
+{% block content %}
+<div class="panel">
+  <div class="panel-head"><h2>Upload a report format</h2></div>
+  <div class="panel-body">
+    <p class="note">Upload any DOCX, for example a revised CPRI format. Its structure is analysed, value places are mapped to registry
+      fields automatically (reusing the mapping of the active version), and a draft is created for review. Activation needs HOD approval.</p>
+    <form method="post" enctype="multipart/form-data" action="{{ url_for('admin.template_upload') }}" class="inline-form">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <label style="flex:2">DOCX file <input type="file" name="file" accept=".docx" required></label>
+      <label style="flex:2">Name <input name="name" placeholder="For example: CPRI Transformer Test Report, revision 2"></label>
+      <label style="flex:1.4">Equipment type <input name="equipment_type" value="Distribution Transformer, IS 1180"></label>
+      <label class="choice" style="margin-bottom:8px"><input type="checkbox" name="use_ai" value="1"> AI suggestions</label>
+      <button class="btn btn-primary" id="template-upload-btn">Upload and map</button>
+    </form>
+  </div>
+</div>
+<div class="panel">
+  <div class="panel-head"><h2>Versions</h2><span class="small muted">Templates are never deleted. Issued reports record the version they used.</span></div>
+  <table class="table">
+    <thead><tr><th>Name</th><th>Equipment type</th><th class="num">Version</th><th>Status</th><th class="num">Mapped</th><th>Created</th><th>Approved</th></tr></thead>
+    <tbody>
+    {% for t in rows %}{% set st = mappings[t.id].get('stats', {}) %}
+      <tr class="row-link" data-href="{{ url_for('admin.template_detail', tid=t.id) }}">
+        <td><a href="{{ url_for('admin.template_detail', tid=t.id) }}">{{ t.name }}</a></td><td>{{ t.equipment_type }}</td>
+        <td class="num">{{ t.version }}</td>
+        <td><span class="badge {{ {'active': 'green', 'pending_hod': 'amber', 'draft': 'navy'}.get(t.status, 'plain') }}">{{ {'active': 'Active', 'pending_hod': 'Awaiting HOD', 'draft': 'Draft', 'retired': 'Retired'}[t.status] }}</span></td>
+        <td class="num">{{ '%.0f'|format((st.get('coverage') or 0) * 100) }}%</td>
+        <td class="nowrap">{{ t.created_at|d }}<div class="small muted">{{ t.creator or 'system' }}</div></td>
+        <td class="nowrap">{{ t.approved_at|d if t.approved_at else '-' }}<div class="small muted">{{ t.approver or '' }}</div></td>
+      </tr>
+    {% else %}<tr><td colspan="7" class="empty">No templates.</td></tr>{% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

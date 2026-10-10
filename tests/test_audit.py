@@ -38,6 +38,6 @@ def test_tampering_breaks_the_chain(tmp_path):
 
 def test_logins_are_logged(client, conn):
     client.post("/admin/login", data={"username": "admin", "password": "wrong"})
-    client.post("/admin/login", data={"username": "admin", "password": "admin123"})
+    client.post("/admin/login", data={"username": "admin", "password": "admin12345"})
     acts = [r["action"] for r in conn.execute("SELECT action FROM audit_log ORDER BY id DESC LIMIT 2")]
     assert acts == ["login.success", "login.fail"]

@@ -1,29 +1,23 @@
 {% extends "base.html" %}
 {% block title %}Configuration{% endblock %}
 {% block content %}
-<div class="page-head"><h1>Configuration</h1></div>
-<form method="post" class="card">
+<div class="callout">Changes to numbering prefixes, report text and rule limits take effect only after the HOD approves them.</div>
+{% for p in pending %}<div class="callout warn">Waiting for the HOD: {{ p.summary }} (requested {{ p.requested_at|dt }}).</div>{% endfor %}
+<form method="post" class="panel">
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-  <h2>Numbering &amp; report text</h2>
-  <div class="grid2">
-    <label>Report number prefix (lab code) <input name="lab_code" value="{{ s.lab_code }}"></label>
-    <label>Sample code prefix <input name="sample_prefix" value="{{ s.sample_prefix }}"></label>
-    <label>ULR prefix (footer) <input name="ulr_prefix" value="{{ s.ulr_prefix }}"></label>
-    <label>Test circuit diagram no. <input name="circuit_diagram_no" value="{{ s.circuit_diagram_no }}"></label>
-    <label class="span2">Standard (printed on report) <input name="standard_text" value="{{ s.standard_text }}"></label>
-    <label class="span2">Short-circuit standard <input name="sc_standard_text" value="{{ s.sc_standard_text }}"></label>
-  </div>
-  <h2>Rule limits <small class="muted">used by app/rules.py</small></h2>
-  <div class="grid3">
-    {% for key, default in defaults.items() if default is number %}
-      <label>{{ key.replace('_', ' ') }} <input name="{{ key }}" value="{{ s[key] }}" inputmode="decimal">
-        <small class="muted">default {{ default }}</small></label>
+  <div class="panel-head"><h2>Numbering and report text</h2></div>
+  <div class="panel-body form-grid">
+    {% for key in keys if defaults[key] is string %}
+      <label class="{{ 'full' if key.endswith('_text') }}">{{ key.replace('_', ' ')|capitalize }} <input name="{{ key }}" value="{{ s[key] }}"></label>
     {% endfor %}
   </div>
-  <button class="btn btn-primary">Save configuration</button>
+  <div class="panel-head" style="border-top:1px solid var(--border)"><h2>Rule limits</h2><span class="small muted">used by mappings/rules.yaml</span></div>
+  <div class="panel-body form-grid">
+    {% for key in keys if defaults[key] is number and defaults[key] is not sameas true and defaults[key] is not sameas false %}
+      <label>{{ key.replace('_', ' ')|capitalize }} <input name="{{ key }}" value="{{ s[key] }}" inputmode="decimal"><span class="hint">Default {{ defaults[key] }}</span></label>
+    {% endfor %}
+  </div>
+  <div class="panel-body form-actions"><button class="btn btn-primary">Submit changes for approval</button></div>
 </form>
-<div class="card">
-  <h3>System</h3>
-  <p>PDF converter detected at start-up: <b>{{ converter[0] or 'none - reports are served as DOCX' }}</b> {{ converter[1] or '' }}</p>
-</div>
+<div class="panel"><div class="panel-body small muted">PDF converter: {{ converter[0] or 'none (reports are served as DOCX)' }} {{ converter[1] or '' }}</div></div>
 {% endblock %}

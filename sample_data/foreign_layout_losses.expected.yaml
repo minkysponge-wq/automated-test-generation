@@ -1,0 +1,204 @@
+nll.bt.f:
+  cell: Loss test record!B5
+  value: 49.95
+nll.bt.p:
+  cell: Loss test record!C5
+  value: 383.18
+nll.bt.i:
+  cell: Loss test record!D5
+  value: 1.689
+nll.bt.v:
+  cell: Loss test record!E5
+  value: 433.05
+nll.at.f:
+  cell: Loss test record!B6
+  value: 49.99
+nll.at.p:
+  cell: Loss test record!C6
+  value: 383.26
+nll.at.i:
+  cell: Loss test record!D6
+  value: 1.687
+nll.at.v:
+  cell: Loss test record!E6
+  value: 433.02
+ll.nt.bt.p1:
+  cell: Loss test record!C11
+  value: 568.91
+ll.nt.bt.p2:
+  cell: Loss test record!D11
+  value: 565.64
+ll.nt.bt.p3:
+  cell: Loss test record!E11
+  value: 542.57
+ll.nt.bt.i1:
+  cell: Loss test record!F11
+  value: 12.706
+ll.nt.bt.i2:
+  cell: Loss test record!G11
+  value: 12.718
+ll.nt.bt.i3:
+  cell: Loss test record!H11
+  value: 12.576
+ll.nt.bt.v1:
+  cell: Loss test record!I11
+  value: 267.85
+ll.nt.bt.v2:
+  cell: Loss test record!J11
+  value: 268.49
+ll.nt.bt.v3:
+  cell: Loss test record!K11
+  value: 263.62
+ll.nt.bt.f:
+  cell: Loss test record!L11
+  value: 49.886
+ll.nt.at.p1:
+  cell: Loss test record!C12
+  value: 588.76
+ll.nt.at.p2:
+  cell: Loss test record!D12
+  value: 586.96
+ll.nt.at.p3:
+  cell: Loss test record!E12
+  value: 568.04
+ll.nt.at.i1:
+  cell: Loss test record!F12
+  value: 12.936
+ll.nt.at.i2:
+  cell: Loss test record!G12
+  value: 12.935
+ll.nt.at.i3:
+  cell: Loss test record!H12
+  value: 12.819
+ll.nt.at.v1:
+  cell: Loss test record!I12
+  value: 273.45
+ll.nt.at.v2:
+  cell: Loss test record!J12
+  value: 273.81
+ll.nt.at.v3:
+  cell: Loss test record!K12
+  value: 269.6
+ll.nt.at.f:
+  cell: Loss test record!L12
+  value: 49.959
+ll.ht.bt.p1:
+  cell: Loss test record!C13
+  value: 508.05
+ll.ht.bt.p2:
+  cell: Loss test record!D13
+  value: 508.62
+ll.ht.bt.p3:
+  cell: Loss test record!E13
+  value: 490.73
+ll.ht.bt.i1:
+  cell: Loss test record!F13
+  value: 11.607
+ll.ht.bt.i2:
+  cell: Loss test record!G13
+  value: 11.588
+ll.ht.bt.i3:
+  cell: Loss test record!H13
+  value: 11.48
+ll.ht.bt.v1:
+  cell: Loss test record!I13
+  value: 273.45
+ll.ht.bt.v2:
+  cell: Loss test record!J13
+  value: 273.66
+ll.ht.bt.v3:
+  cell: Loss test record!K13
+  value: 269.03
+ll.ht.bt.f:
+  cell: Loss test record!L13
+  value: 49.876
+ll.ht.at.p1:
+  cell: Loss test record!C14
+  value: 498.22
+ll.ht.at.p2:
+  cell: Loss test record!D14
+  value: 493.92
+ll.ht.at.p3:
+  cell: Loss test record!E14
+  value: 482.26
+ll.ht.at.i1:
+  cell: Loss test record!F14
+  value: 11.452
+ll.ht.at.i2:
+  cell: Loss test record!G14
+  value: 11.449
+ll.ht.at.i3:
+  cell: Loss test record!H14
+  value: 11.342
+ll.ht.at.v1:
+  cell: Loss test record!I14
+  value: 270.67
+ll.ht.at.v2:
+  cell: Loss test record!J14
+  value: 271.09
+ll.ht.at.v3:
+  cell: Loss test record!K14
+  value: 266.12
+ll.ht.at.f:
+  cell: Loss test record!L14
+  value: 49.944
+ll.lt.bt.p1:
+  cell: Loss test record!C15
+  value: 615.33
+ll.lt.bt.p2:
+  cell: Loss test record!D15
+  value: 598.64
+ll.lt.bt.p3:
+  cell: Loss test record!E15
+  value: 579.45
+ll.lt.bt.i1:
+  cell: Loss test record!F15
+  value: 14.175
+ll.lt.bt.i2:
+  cell: Loss test record!G15
+  value: 14.158
+ll.lt.bt.i3:
+  cell: Loss test record!H15
+  value: 13.954
+ll.lt.bt.v1:
+  cell: Loss test record!I15
+  value: 247.35
+ll.lt.bt.v2:
+  cell: Loss test record!J15
+  value: 248.33
+ll.lt.bt.v3:
+  cell: Loss test record!K15
+  value: 242.53
+ll.lt.bt.f:
+  cell: Loss test record!L15
+  value: 49.878
+ll.lt.at.p1:
+  cell: Loss test record!C16
+  value: 590.73
+ll.lt.at.p2:
+  cell: Loss test record!D16
+  value: 577.67
+ll.lt.at.p3:
+  cell: Loss test record!E16
+  value: 557.86
+ll.lt.at.i1:
+  cell: Loss test record!F16
+  value: 13.866
+ll.lt.at.i2:
+  cell: Loss test record!G16
+  value: 13.869
+ll.lt.at.i3:
+  cell: Loss test record!H16
+  value: 13.672
+ll.lt.at.v1:
+  cell: Loss test record!I16
+  value: 242.61
+ll.lt.at.v2:
+  cell: Loss test record!J16
+  value: 244.44
+ll.lt.at.v3:
+  cell: Loss test record!K16
+  value: 238.47
+ll.lt.at.f:
+  cell: Loss test record!L16
+  value: 49.955

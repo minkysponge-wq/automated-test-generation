@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% set nav = 'admin.registry' %}
+{% block title %}{{ 'New field' if is_new else 'Edit field ' ~ f.key }}{% endblock %}
+{% block content %}
+<form method="post" class="panel">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <div class="panel-head"><h2>{{ 'New registry field' if is_new else f.key }}</h2><span class="small muted">Saved as a change request for the HOD</span></div>
+  <div class="panel-body form-grid">
+    <label>Key <input name="key" value="{{ f.key or '' }}" {% if not is_new %}readonly{% endif %} required class="mono"><span class="hint">Dotted, e.g. ir.bt.core_e. The Excel defined name uses underscores.</span></label>
+    <label>Label <input name="label" value="{{ f.label or '' }}" required></label>
+    <label>Unit <input name="unit" value="{{ f.unit or '' }}"></label>
+    <label>Decimals in the report <input name="dp" value="{{ f.dp if f.dp is not none else '' }}" inputmode="numeric"></label>
+    <label>Source <select name="source">{% for s in ['reading', 'request', 'proforma', 'computed', 'system'] %}<option {% if f.source == s %}selected{% endif %}>{{ s }}</option>{% endfor %}</select></label>
+    <label>Data type <select name="dtype">{% for s in ['number', 'text', 'date', 'list'] %}<option {% if f.dtype == s %}selected{% endif %}>{{ s }}</option>{% endfor %}</select></label>
+    <label>Test <select name="test_code"><option value="">None</option>{% for c, t in TESTS.items() %}<option value="{{ c }}" {% if f.test_code == c %}selected{% endif %}>{{ t.name }}</option>{% endfor %}</select></label>
+    <label>Logsheet station <select name="station"><option value="">None</option>{% for c, s in STATIONS.items() %}<option value="{{ c }}" {% if f.station == c %}selected{% endif %}>{{ s.title }}</option>{% endfor %}</select></label>
+    <label>Excel section <input name="section" value="{{ f.section or '' }}"><span class="hint">Readings with the same section form one table in the logsheet.</span></label>
+    <label>Excel sheet <input name="sheet" value="{{ f.sheet or 'Logsheet' }}"></label>
+    <label>Table row label <input name="row" value="{{ f.row or '' }}"></label>
+    <label>Table column label <input name="col" value="{{ f.col or '' }}"></label>
+    <label class="full">Report label (row || column) <input name="report_label" value="{{ f.report_label or '' }}"><span class="hint">Used by the template auto-mapper, e.g. "% Impedance at 75 °C || Before SCW test Principal".</span></label>
+    <label class="full">Formula (computed fields) <input name="formula" value="{{ f.formula or '' }}" class="mono"><span class="hint">Safe expression, e.g. r75(avg(wr.hv.n.bt.uv, wr.hv.n.bt.vw, wr.hv.n.bt.wu), wtemp('bt'))</span></label>
+    <label>Stage <select name="stage"><option value="pre" {% if f.stage != 'post' %}selected{% endif %}>Before rules</option><option value="post" {% if f.stage == 'post' %}selected{% endif %}>After rules</option></select></label>
+    <label>Options (separated by |) <input name="options" value="{{ (f.options or [])|join(' | ') }}"></label>
+    <label class="choice"><input type="checkbox" name="required" value="1" {% if f.required %}checked{% endif %}> Required when its test is requested</label>
+    <label class="choice"><input type="checkbox" name="multi" value="1" {% if f.multi %}checked{% endif %}> May fill several report places</label>
+  </div>
+  <div class="panel-body form-actions"><a class="btn" href="{{ url_for('admin.registry') }}">Cancel</a><button class="btn btn-primary">Submit for approval</button></div>
+</form>
+{% endblock %}

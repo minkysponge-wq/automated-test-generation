@@ -1,0 +1,11 @@
+{%- set b = s.binding -%}
+{%- if b and b.kind == 'ignore' %}{% set cls = 'ignored' %}
+{%- elif b and (b.confidence or 1) < 0.85 %}{% set cls = 'low' %}
+{%- elif b %}{% set cls = 'mapped' %}
+{%- elif s.required %}{% set cls = 'unmapped' %}
+{%- else %}{% set cls = 'optional' %}{% endif -%}
+<span class="slot {{ cls }}" role="button" tabindex="0" data-slot="{{ s.id }}" data-fp="{{ s.fp }}"
+      data-kind="{{ b.kind if b else '' }}" data-key="{{ b.key if b and b.key else '' }}" data-text="{{ b.text if b and b.text else '' }}"
+      data-expr="{{ b.expr if b and b.expr else '' }}"
+      data-context="{{ s.kind }} | row: {{ s.context.row or '-' }} | column: {{ s.context.col or '-' }}{% if b %} | {{ b.method }} {{ '%.2f'|format(b.confidence or 0) }}{% endif %}"
+      title="{{ s.binding_label or ('required, not mapped' if s.required else 'optional, not mapped') }}">{{ (b.key if b and b.kind == 'field' else s.binding_label) or (s.current or s.kind) }}</span>

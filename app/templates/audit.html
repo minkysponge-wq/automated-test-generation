@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% set nav = portal_role ~ '.audit_log' %}
+{% block title %}Activity log{% endblock %}
+{% block heading %}Activity log <span class="sub">append-only, hash-chained</span>{% endblock %}
+{% block actions %}
+  {% if can_verify %}<button class="btn btn-sm" id="verify-chain" data-url="{{ url_for('hod.audit_verify') }}">Verify chain</button>{% endif %}
+  <a class="btn btn-sm" href="{{ url_for(portal_role ~ '.audit_csv', **args) }}">Export CSV</a>
+{% endblock %}
+{% block content %}
+<div id="chain-result"></div>
+<div class="panel">
+  <form class="searchbar" method="get">
+    <input name="user" value="{{ args.get('user', '') }}" placeholder="User" aria-label="User">
+    <select name="role" aria-label="Role"><option value="">All roles</option>{% for r in ['customer', 'engineer', 'admin', 'hod'] %}<option value="{{ r }}" {% if args.get('role') == r %}selected{% endif %}>{{ ROLE_META[r].title }}</option>{% endfor %}</select>
+    <input name="action" value="{{ args.get('action', '') }}" placeholder="Action, e.g. reading.correct" aria-label="Action">
+    <input name="entity" value="{{ args.get('entity', '') }}" placeholder="Entity" aria-label="Entity" style="width:110px">
+    <input name="entity_id" value="{{ args.get('entity_id', '') }}" placeholder="Id" aria-label="Entity id" style="width:70px">
+    <input type="date" name="from" value="{{ args.get('from', '') }}" aria-label="From date">
+    <input type="date" name="to" value="{{ args.get('to', '') }}" aria-label="To date">
+    <button class="btn btn-primary btn-sm">Filter</button>
+    <a class="btn btn-sm" href="{{ url_for(portal_role ~ '.audit_log') }}">Clear</a>
+  </form>
+  <div class="table-wrap">
+  <table class="table compact">
+    <thead><tr><th class="num">#</th><th>Time (IST)</th><th>User</th><th>Role</th><th>Action</th><th>Entity</th><th>Before / after</th><th>IP</th><th>Row hash</th></tr></thead>
+    <tbody>
+    {% for r in rows %}
+      <tr><td class="num">{{ r.id }}</td><td class="nowrap">{{ r.ts|dt }}</td><td>{{ r.username or '-' }}</td><td>{{ r.role or '' }}</td>
+        <td class="mono">{{ r.action }}</td><td class="nowrap">{{ r.entity_type or '' }} {{ r.entity_id or '' }}</td>
+        <td class="mono small" style="max-width:380px;word-break:break-all">{% if r.before_json %}<span class="muted">{{ r.before_json }}</span><br>{% endif %}{{ r.after_json or '' }}</td>
+        <td class="small">{{ r.ip or '' }}</td><td class="mono small" title="{{ r.row_hash }}">{{ r.row_hash[:10] }}</td></tr>
+    {% else %}<tr><td colspan="9" class="empty">No matching entries.</td></tr>{% endfor %}
+    </tbody>
+  </table>
+  </div>
+</div>
+<p class="note">Latest {{ rows|length }} entries (maximum 500). Use the filters or the CSV export for older entries.</p>
+{% endblock %}

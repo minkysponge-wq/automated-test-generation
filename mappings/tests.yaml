@@ -1,0 +1,25 @@
+# Test catalogue (seeded into the test_catalogue table). Adding a test = a row here + its fields + its report section.
+# group: special | type | routine; station = Excel logsheet; report_section = section id in the report template mapping.
+
+tests:
+  - {code: sc_withstand, name: "Short-circuit withstand test (dynamic + thermal)", group: special, clause: "21.4 b)", standard: "IS 1180 (Part 1): 2014", station: sc, excel_template: "short_circuit.xlsx", report_section: sc_withstand, order: 1}
+  - {code: nlc_112, name: "No-load current at 112.5 % voltage", group: special, clause: "21.4 c)", standard: "IS 1180 (Part 1): 2014", station: losses, excel_template: "losses.xlsx", report_section: nlc_112, order: 2}
+  - {code: temp_rise, name: "Temperature-rise test", group: type, clause: "21.3 b)", standard: "IS 1180 (Part 1): 2014", station: temprise, excel_template: "temperature_rise.xlsx", report_section: temp_rise, order: 3}
+  - {code: pressure_type, name: "Pressure test", group: type, clause: "21.3 d)", standard: "IS 1180 (Part 1): 2014", station: pressure, excel_template: "pressure_oil_leakage.xlsx", report_section: pressure_type, order: 4}
+  - {code: winding_res, name: "Measurement of winding resistance", group: routine, clause: "21.2 a)", standard: "IS 1180 (Part 1): 2014", station: losses, excel_template: "losses.xlsx", report_section: winding_res, order: 5}
+  - {code: ratio, name: "Measurement of voltage ratio and check of phase displacement (vector group)", group: routine, clause: "21.2 b)", standard: "IS 1180 (Part 1): 2014", station: routine, excel_template: "routine.xlsx", report_section: ratio, order: 6}
+  - {code: impedance, name: "Measurement of short-circuit impedance and load loss", group: routine, clause: "21.2 c)", standard: "IS 1180 (Part 1): 2014", station: losses, excel_template: "losses.xlsx", report_section: impedance, order: 7}
+  - {code: nll, name: "Measurement of no-load loss and current", group: routine, clause: "21.2 d)", standard: "IS 1180 (Part 1): 2014", station: losses, excel_template: "losses.xlsx", report_section: nll, order: 8}
+  - {code: ir, name: "Measurement of insulation resistance", group: routine, clause: "21.2 e)", standard: "IS 1180 (Part 1): 2014", station: routine, excel_template: "routine.xlsx", report_section: ir, order: 9}
+  - {code: induced, name: "Induced over-voltage withstand test", group: routine, clause: "21.2 f)", standard: "IS 1180 (Part 1): 2014", station: routine, excel_template: "routine.xlsx", report_section: induced, order: 10}
+  - {code: sep_source, name: "Separate source voltage withstand test", group: routine, clause: "21.2 g)", standard: "IS 1180 (Part 1): 2014", station: routine, excel_template: "routine.xlsx", report_section: sep_source, order: 11}
+  - {code: pressure_routine, name: "Pressure test (routine)", group: routine, clause: "21.2 h)", standard: "IS 1180 (Part 1): 2014", station: pressure, excel_template: "pressure_oil_leakage.xlsx", report_section: pressure_routine, order: 12}
+  - {code: oil_leak, name: "Oil leakage test", group: routine, clause: "21.2 j)", standard: "IS 1180 (Part 1): 2014", station: pressure, excel_template: "pressure_oil_leakage.xlsx", report_section: oil_leak, order: 13}
+
+# Excel logsheets (stations). One workbook per station, generated from the registry.
+stations:
+  - {code: losses, title: "Losses & Winding Resistance", logsheet: "Log-sheet for loss measurement + Datasheet for losses calculation", file: "losses.xlsx"}
+  - {code: routine, title: "Routine Tests", logsheet: "Log sheet for routine tests on transformers", file: "routine.xlsx"}
+  - {code: sc, title: "Short-Circuit Withstand", logsheet: "Log-sheet for short circuit test on transformers", file: "short_circuit.xlsx"}
+  - {code: temprise, title: "Temperature Rise", logsheet: "Log sheet for temperature-rise test", file: "temperature_rise.xlsx"}
+  - {code: pressure, title: "Pressure & Oil Leakage", logsheet: "Log sheet for air pressure tests and oil leakage test", file: "pressure_oil_leakage.xlsx"}

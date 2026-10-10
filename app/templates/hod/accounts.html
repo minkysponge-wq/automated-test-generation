@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% from "components/macros.html" import field_error with context %}
+{% block title %}Accounts{% endblock %}
+{% block content %}
+<div class="callout">Test In-charge registrations appear in the approval inbox. Engineer accounts are approved by the Test In-charge.</div>
+<div class="split">
+  <div class="panel">
+    <div class="panel-head"><h2>Test In-charge and HOD accounts</h2></div>
+    <table class="table compact">
+      <thead><tr><th>Name</th><th>Username</th><th>Role</th><th>Status</th></tr></thead>
+      {% for u in rows %}<tr><td>{{ u.full_name }}</td><td class="mono">{{ u.username }}</td><td>{{ ROLE_META[u.role].title }}</td>
+        <td><span class="badge {{ 'green' if u.status == 'active' else 'amber' if u.status == 'pending' else 'red' }}">{{ {'active': 'Active', 'pending': 'Pending approval', 'disabled': 'Disabled'}[u.status] }}</span></td></tr>{% endfor %}
+    </table>
+  </div>
+  <form method="post" class="panel" novalidate>
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="panel-head"><h2>Create an HOD account</h2></div>
+    <div class="panel-body">
+      {% for name, label, typ in [('username', 'Username', 'text'), ('full_name', 'Full name', 'text'), ('email', 'E-mail', 'email'),
+                                  ('phone', 'Phone', 'text'), ('password', 'Password (at least 8 characters)', 'password'), ('password2', 'Repeat password', 'password')] %}
+      <label class="{{ 'field-error' if errors.get(name) }}">{{ label }} <input name="{{ name }}" type="{{ typ }}" value="{{ form.get(name, '') if typ != 'password' }}">{{ field_error(errors, name) }}</label>
+      {% endfor %}
+      <div class="form-actions"><button class="btn btn-primary">Create account</button></div>
+    </div>
+  </form>
+</div>
+{% endblock %}

@@ -9,6 +9,12 @@ import secrets
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
+try:  # .env is optional (copy .env.example -> .env)
+    from dotenv import load_dotenv
+    load_dotenv(os.path.join(BASE_DIR, ".env"))
+except ImportError:  # pragma: no cover
+    pass
+
 
 def _env(name, default):
     return os.environ.get(name, default)
@@ -28,16 +34,29 @@ REPORT_DIR = os.path.join(STORAGE_DIR, "reports")      # work instructions, othe
 SEALED_DIR = os.path.join(STORAGE_DIR, "sealed")       # issued reports (read-only)
 PREVIEW_DIR = os.path.join(STORAGE_DIR, "preview")     # admin live previews (throw-away)
 FIELDS_YAML = os.path.join(BASE_DIR, "mappings", "fields.yaml")
-REPORT_TEMPLATE = os.path.join(BASE_DIR, "templates", "report_template.docx")
 EXCEL_TEMPLATE_DIR = os.path.join(BASE_DIR, "templates", "excel")
 SAMPLE_DATA_DIR = os.path.join(BASE_DIR, "sample_data")
 
 # --- security -------------------------------------------------------------
-# Admin self-registration needs this code so random LAN users cannot become admin.
-ADMIN_INVITE_CODE = _env("ATRG_ADMIN_INVITE_CODE", "CPRI-ADMIN-2026")
+MIN_PASSWORD_LENGTH = 8
 MAX_UPLOAD_MB = 20
 ALLOWED_DOC_EXT = {".pdf", ".jpg", ".jpeg", ".png"}
 ALLOWED_EXCEL_EXT = {".xlsx"}
+ALLOWED_SCAN_EXT = {".pdf", ".jpg", ".jpeg", ".png"}
+ALLOWED_TEMPLATE_EXT = {".docx"}
+BACKUP_DIR = os.path.join(STORAGE_DIR, "backups")
+
+# --- AI (optional) ----------------------------------------------------------
+# Without a key, or with AI_ENABLED=false, every AI feature falls back to manual entry
+# and no data ever leaves this computer.
+GEMINI_API_KEY = _env("GEMINI_API_KEY", "").strip()
+AI_ENABLED = _env("AI_ENABLED", "true").strip().lower() in ("1", "true", "yes") and bool(GEMINI_API_KEY)
+# model ids come from .env - see https://ai.google.dev/gemini-api/docs/models
+# empty = choose the newest gemini-X.Y-flash / -pro the key can use (models.list at start-up)
+GEMINI_MODEL_FAST = _env("GEMINI_MODEL_FAST", "").strip()
+GEMINI_MODEL_PRO = _env("GEMINI_MODEL_PRO", "").strip()
+GEMINI_USE_VERTEX = _env("GEMINI_USE_VERTEX", "auto").strip().lower()   # auto | true | false
+AI_WORKERS = int(_env("AI_WORKERS", "2"))
 
 
 def secret_key():
@@ -59,6 +78,11 @@ DEFAULT_SETTINGS = {
     "standard_text": "IS 1180 (Part 1): 2014 (with Amendment No.4: March 2021)",
     "sc_standard_text": "IS: 2026 (Part-5):2011",
     "circuit_diagram_no": "CRTL/SC/TR-07B",
+    # optional HOD approvals (always-required ones are not switchable)
+    "approval_accept_request": False,
+    "approval_reject_request": False,
+    "approval_assign_engineers": False,
+    "approval_return_job": False,
     # rule limits (see app/rules.py)
     "nlc_limit_100_pct": 2.0,                  # no-load current at 100 % V, % of rated
     "nlc_limit_112_pct": 5.0,                  # no-load current at 112.5 % V, % of rated

@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}Field registry{% endblock %}
+{% block actions %}<a class="btn btn-sm btn-primary" href="{{ url_for('admin.registry_edit') }}">New field</a>{% endblock %}
+{% block content %}
+<div class="callout">The registry drives the request form, the Excel logsheets, the AI extraction schema, the rules and the report mapping.
+  Changes take effect after HOD approval.</div>
+{% set open = pending|selectattr('status', 'equalto', 'pending')|list %}
+{% if open %}<div class="callout warn">{{ open|length }} registry change(s) waiting for the HOD.</div>{% endif %}
+<div class="panel">
+  <form class="searchbar" method="get" role="search">
+    <input name="q" value="{{ q }}" placeholder="Key, label or report label" aria-label="Search fields">
+    <select name="source" aria-label="Source"><option value="">All sources</option>{% for s in ['reading', 'request', 'proforma', 'computed', 'system'] %}<option {% if s == source %}selected{% endif %}>{{ s }}</option>{% endfor %}</select>
+    <select name="station" aria-label="Station"><option value="">All stations</option>{% for code, st in STATIONS.items() %}<option value="{{ code }}" {% if code == station %}selected{% endif %}>{{ st.title }}</option>{% endfor %}</select>
+    <button class="btn btn-sm btn-primary">Filter</button>
+    <span class="small muted">{{ total }} field(s){% if total > rows|length %}, first {{ rows|length }} shown{% endif %}</span>
+  </form>
+  <div class="table-wrap">
+  <table class="table compact">
+    <thead><tr><th>Key</th><th>Label</th><th>Unit</th><th class="num">Decimals</th><th>Source</th><th>Test</th><th>Report label / formula</th><th></th></tr></thead>
+    <tbody>
+    {% for f in rows %}
+      <tr><td class="mono">{{ f.key }}</td><td>{{ f.label }}{% if f.required %} <span class="req">*</span>{% endif %}</td><td>{{ f.unit }}</td>
+        <td class="num">{{ f.dp if f.dp is not none else '' }}</td><td>{{ f.source }}</td><td>{{ f.test_code or '' }}</td>
+        <td class="small">{% if f.formula %}<span class="mono">{{ f.formula[:90] }}</span>{% else %}{{ f.report_label or '' }}{% endif %}</td>
+        <td><a href="{{ url_for('admin.registry_edit', key=f.key) }}">Edit</a></td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</div>
+{% if pending %}
+<div class="panel"><div class="panel-head"><h2>Recent registry change requests</h2></div>
+  <table class="table compact">{% for p in pending %}<tr><td class="nowrap">{{ p.requested_at|dt }}</td><td>{{ p.summary }}</td>
+    <td><span class="badge {{ {'pending': 'amber', 'approved': 'green', 'rejected': 'red'}.get(p.status, 'plain') }}">{{ p.status|capitalize }}</span></td><td class="small muted">{{ p.comment or '' }}</td></tr>{% endfor %}</table></div>
+{% endif %}
+{% endblock %}

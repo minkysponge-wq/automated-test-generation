@@ -1,9 +1,11 @@
 r"""
 Server-side state machine for a test request / job.
 
-    SUBMITTED -> ACCEPTED -> ASSIGNED -> IN_TESTING -> LOCKED_BY_ENGINEER -> UNDER_REVIEW -> ISSUED
-         \-> REJECTED                        ^                |                  |
-                                             +-- RETURNED <---+------------------+
+    SUBMITTED -> ACCEPTED -> ASSIGNED -> IN_TESTING -> LOCKED_BY_ENGINEER -> ADMIN_REVIEW -> PENDING_HOD -> ISSUED
+         \-> REJECTED                        ^                |                  |  ^             |
+                                             +-- RETURNED <---+------------------+  +-------------+  (HOD rejects)
+
+Only an HOD approval (approval type `issue_report`) moves a job to ISSUED and seals it.
 
 The UI only hides buttons; every state change goes through `apply()` here,
 which checks (1) the job is not sealed, (2) the optimistic-lock version,
@@ -15,22 +17,23 @@ from . import audit
 from .db import now_ist
 
 SUBMITTED, ACCEPTED, ASSIGNED, IN_TESTING = "SUBMITTED", "ACCEPTED", "ASSIGNED", "IN_TESTING"
-LOCKED, UNDER_REVIEW, ISSUED = "LOCKED_BY_ENGINEER", "UNDER_REVIEW", "ISSUED"
+LOCKED, ADMIN_REVIEW, PENDING_HOD, ISSUED = "LOCKED_BY_ENGINEER", "ADMIN_REVIEW", "PENDING_HOD", "ISSUED"
 RETURNED, REJECTED = "RETURNED", "REJECTED"
 
 STATE_LABELS = {
     SUBMITTED: "Submitted",
-    ACCEPTED: "Accepted - sample code issued",
+    ACCEPTED: "Accepted",
     ASSIGNED: "Engineer assigned",
     IN_TESTING: "Testing",
-    LOCKED: "Engineer verified & locked",
-    UNDER_REVIEW: "Under admin review",
+    LOCKED: "Engineer verified and locked",
+    ADMIN_REVIEW: "Technical review",
+    PENDING_HOD: "Awaiting HOD authorization",
     ISSUED: "Report issued",
     RETURNED: "Returned to engineer",
     REJECTED: "Rejected",
 }
 # The happy path shown as a timeline to the customer.
-TIMELINE = [SUBMITTED, ACCEPTED, ASSIGNED, IN_TESTING, LOCKED, UNDER_REVIEW, ISSUED]
+TIMELINE = [SUBMITTED, ACCEPTED, ASSIGNED, IN_TESTING, LOCKED, ADMIN_REVIEW, PENDING_HOD, ISSUED]
 
 # action -> (allowed from-states, to-state or None=unchanged, roles allowed)
 TRANSITIONS = {
@@ -40,9 +43,11 @@ TRANSITIONS = {
     "start_testing": ({ASSIGNED, RETURNED}, IN_TESTING, {"engineer"}),
     "edit":          ({ASSIGNED, IN_TESTING, RETURNED}, None, {"engineer"}),
     "lock":          ({IN_TESTING}, LOCKED, {"engineer"}),
-    "begin_review":  ({LOCKED}, UNDER_REVIEW, {"admin"}),
-    "return":        ({LOCKED, UNDER_REVIEW}, RETURNED, {"admin"}),
-    "issue":         ({UNDER_REVIEW}, ISSUED, {"admin"}),
+    "begin_review":  ({LOCKED}, ADMIN_REVIEW, {"admin"}),
+    "return":        ({LOCKED, ADMIN_REVIEW}, RETURNED, {"admin"}),
+    "forward":       ({ADMIN_REVIEW}, PENDING_HOD, {"admin"}),
+    "hod_reject":    ({PENDING_HOD}, ADMIN_REVIEW, {"hod"}),
+    "issue":         ({PENDING_HOD}, ISSUED, {"hod"}),
 }
 # states in which engineers may change readings
 EDITABLE = {ASSIGNED, IN_TESTING, RETURNED}
@@ -71,7 +76,7 @@ def conflict_message(conn, job):
         u = conn.execute("SELECT full_name, username FROM users WHERE id=?", (job["updated_by"],)).fetchone()
         if u:
             who = f"{u['full_name']} ({u['username']})"
-    return f"This record was changed by {who} at {job['updated_at'] or '?'}; reload."
+    return f"This record was changed by {who} at {job['updated_at'] or '?'}. Reload to continue."
 
 
 def check_version(conn, job, expected_version):

@@ -1,10 +1,11 @@
-"""Generated report: no template tags / XXXX left, and every value cell filled."""
+"""Generated report (template v1 through the dynamic pipeline): no tags / dummy text left, every value cell filled."""
 import re
 
 import docx
 import pytest
 
 from app import report
+from app.reporting import generator, sections, templates as T
 
 W = "{http://schemas.openxmlformats.org/wordprocessingml/2006/main}"
 
@@ -48,9 +49,9 @@ REQUIRED = ([(0, r, 2) for r in (2, 4, 6, 8, 10, 13, 15, 17, 19, 27, 33, 34, 35,
 @pytest.fixture(scope="module")
 def demo_docx(seeded, tmp_path_factory):
     conn = seeded["conn"]
-    snap = report.build_snapshot(conn, seeded["job_id"])
+    snap = report.build_snapshot(conn, seeded["review_job_id"])
     out = tmp_path_factory.mktemp("rep") / "demo.docx"
-    report.render_docx(snap, str(out), {"report_date": "18-11-2025", "reviewer_name": "HOD", "seal": "a" * 64})
+    report.render_docx(conn, snap, str(out), {"report_date": "18-11-2025", "reviewer_name": "HOD", "seal": "a" * 64})
     return docx.Document(str(out))
 
 
@@ -58,7 +59,7 @@ def test_no_placeholders_left(demo_docx):
     text = _all_text(demo_docx)
     assert "{{" not in text and "{%" not in text and "}}" not in text
     assert "XXXX" not in text
-    assert "CPRIBLRSCL25T1654" in text and "HVD25S0847" in text
+    assert "CPRIBLRSCL25T1655" in text and "HVD25S0848" in text
 
 
 def test_required_cells_filled(demo_docx):
@@ -67,7 +68,7 @@ def test_required_cells_filled(demo_docx):
     empty = []
     for ti, r, c in REQUIRED:
         val = _ucells(t[ti].rows[r])[c].text.strip()
-        if not val or val in ("—", "-") or re.fullmatch(r"[—\s]+", val):
+        if not val or re.fullmatch(r"[—\-\s]+", val):
             empty.append((ti, r, c, val))
     assert not empty, empty
 
@@ -82,11 +83,17 @@ def test_key_values_match_logsheets(demo_docx):
     assert "Within limits" in _ucells(t[31].rows[1])[4].text
 
 
+def test_dry_run_of_active_template_is_clean(seeded, tmp_path):
+    rec = T.active(seeded["conn"])
+    out = tmp_path / "dry.docx"
+    generator.render(T._abs(rec["compiled_path"]), T.mapping_of(rec), T.demo_snapshot(), str(out))
+    assert generator.unfilled(str(out)) == []
+
+
 def test_sheet_numbers_follow_requested_tests(seeded):
-    snap = report.build_snapshot(seeded["conn"], seeded["job_id"])
-    snap["data"]["tests"] = ["winding_res", "oil_leak"]
-    ctx = report.build_context(snap)
-    assert ctx["n_sheets"] == 8                       # cover..drawings, sheet 5, sheet 8, sheet 10, notes
-    assert ctx["show"]["s7"] is False and ctx["show"]["s9"] is False
-    assert ctx["sh"]["s8"] == 6 and ctx["sh"]["s11"] == 8
-    assert ctx["osc_list"] == "Nil"
+    meta = T.mapping_of(T.active(seeded["conn"]))["compiled_meta"]
+    show, flags, numbers, n, test_sheets = sections.visibility(meta, ["winding_res", "oil_leak"])
+    assert n == 8                                   # cover..drawings, sheet 5, sheet 8, sheet 10, notes
+    assert not flags[7] and not flags[9] and flags[10]
+    assert numbers[8] == 6 and numbers[11] == 8
+    assert test_sheets == {"winding_res": [5], "oil_leak": [6]}

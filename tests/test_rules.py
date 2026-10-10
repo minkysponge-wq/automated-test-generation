@@ -1,4 +1,4 @@
-"""Calculations reproduce the values on the scanned CPRI logsheets."""
+"""Calculations (registry formulas + rules.yaml, simpleeval) reproduce the values on the scanned CPRI logsheets."""
 import os
 
 import pytest
@@ -24,28 +24,28 @@ def _r(results, code):
 
 def test_winding_temperature_rise(evaluated):
     (results, calc), _ = evaluated
-    assert round(calc["tr"]["hv"], 1) == 39.7       # 4.0464/3.5540 x (235+25.9) - 235 - 22.85 + 0.475
-    assert round(calc["tr"]["lv"], 1) == 34.3
+    assert round(calc["calc.tr.hv"], 1) == 39.7       # 4.0464/3.5540 x (235+25.9) - 235 - 22.85 + 0.475
+    assert round(calc["calc.tr.lv"], 1) == 34.3
     assert _r(results, "tr_hv")["passed"] is True
 
 
 def test_no_load_current_percent(evaluated):
     (results, calc), _ = evaluated
-    assert round(calc["i_rated"], 2) == 333.34
-    assert round(calc["nlc100_pct_bt"], 2) == 0.51
-    assert round(calc["nlc112_pct"], 2) == 1.28
+    assert round(calc["calc.i_rated"], 2) == 333.34
+    assert round(calc["calc.nlc100.bt"], 2) == 0.51
+    assert round(calc["calc.nlc112"], 2) == 1.28
     assert "6.667 A" in _r(results, "nlc100_bt")["limit"] and "16.667 A" in _r(results, "nlc112")["limit"]
 
 
 def test_reactance_change(evaluated):
     (results, calc), _ = evaluated
-    assert [round(calc["xchg"][t], 3) for t in ("nt", "ht", "lt")] == [-0.163, -0.092, -0.205]
+    assert [round(calc[f"calc.xchg.{t}"], 3) for t in ("nt", "ht", "lt")] == [-0.163, -0.092, -0.205]
 
 
 def test_resistance_correction_to_75(evaluated):
     (_, calc), rd = evaluated
     avg = (3.9736 + 3.9558 + 3.9690) / 3
-    assert calc["hv_r75"]["bt"]["n"] == pytest.approx(avg * 310 / (235 + 24.7))
+    assert calc["calc.r75.hv.bt.n"] == pytest.approx(avg * 310 / (235 + 24.7))
 
 
 def test_all_demo_rules_pass(evaluated):
@@ -68,3 +68,10 @@ def test_ratio_nominal_uses_vector_group():
     assert rules.nominal_ratio(form, 0.0) == pytest.approx(11000 / (433 / 3 ** 0.5))
     form["pf_vector_group"] = "Yyn0"
     assert rules.nominal_ratio(form, 0.0) == pytest.approx(11000 / 433)
+
+
+def test_rules_never_use_python_eval():
+    import inspect
+    from app import rules
+    src = inspect.getsource(rules)
+    assert " eval(" not in src.replace("simple_eval", "") and "exec(" not in src

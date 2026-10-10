@@ -1,28 +1,26 @@
 {% extends "base.html" %}
-{% block title %}Engineers{% endblock %}
+{% block title %}Engineer accounts{% endblock %}
 {% block content %}
-<div class="page-head"><h1>Engineer accounts</h1></div>
-<div class="card">
-<table class="tbl">
-  <thead><tr><th>Name</th><th>Username</th><th>E-mail / phone</th><th>Registered</th><th>Open jobs</th><th>Status</th><th></th></tr></thead>
-  <tbody>
-  {% for u in rows %}
-  <tr>
-    <td>{{ u.full_name }}</td><td class="mono">{{ u.username }}</td><td>{{ u.email }}<br><small>{{ u.phone }}</small></td>
-    <td>{{ u.created_at|d }}</td><td>{{ u.open_jobs }}</td>
-    <td><span class="badge {{ 'st-issued' if u.status == 'active' else 'st-submitted' if u.status == 'pending' else 'st-rejected' }}">{{ u.status }}</span></td>
-    <td>
-      <form method="post" class="inline">
-        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-        <input type="hidden" name="user_id" value="{{ u.id }}">
-        {% if u.status == 'pending' %}<button class="btn btn-sm btn-ok" name="action" value="approve">Approve</button>
-        {% elif u.status == 'active' %}<button class="btn btn-sm" name="action" value="disable">Disable</button>
-        {% else %}<button class="btn btn-sm" name="action" value="enable">Enable</button>{% endif %}
-      </form>
-    </td>
-  </tr>
-  {% else %}<tr><td colspan="7" class="muted">No engineer accounts yet.</td></tr>{% endfor %}
-  </tbody>
-</table>
+<div class="panel">
+  <table class="table">
+    <thead><tr><th>Name</th><th>Username</th><th>Contact</th><th>Registered</th><th class="num">Open jobs</th><th>Status</th><th></th></tr></thead>
+    <tbody>
+    {% for u in rows %}
+    <tr>
+      <td>{{ u.full_name }}</td><td class="mono">{{ u.username }}</td><td>{{ u.email }}<div class="small muted">{{ u.phone }}</div></td>
+      <td class="nowrap">{{ u.created_at|d }}</td><td class="num">{{ u.open_jobs }}</td>
+      <td><span class="badge {{ 'green' if u.status == 'active' else 'amber' if u.status == 'pending' else 'red' }}">{{ {'active': 'Active', 'pending': 'Pending approval', 'disabled': 'Disabled'}[u.status] }}</span></td>
+      <td class="nowrap">
+        <form method="post" style="display:inline">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="user_id" value="{{ u.id }}">
+          {% if u.status == 'pending' %}<button class="btn btn-sm btn-primary" name="action" value="approve">Approve</button>
+          {% elif u.status == 'active' %}<button class="btn btn-sm" name="action" value="disable">Disable</button>
+          {% else %}<button class="btn btn-sm" name="action" value="enable">Enable</button>{% endif %}
+        </form>
+      </td>
+    </tr>
+    {% else %}<tr><td colspan="7" class="empty">No engineer accounts.</td></tr>{% endfor %}
+    </tbody>
+  </table>
 </div>
 {% endblock %}

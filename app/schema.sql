@@ -14,7 +14,7 @@ CREATE TABLE IF NOT EXISTS users (
     id            INTEGER PRIMARY KEY,
     username      TEXT NOT NULL UNIQUE COLLATE NOCASE,
     password_hash TEXT NOT NULL,
-    role          TEXT NOT NULL CHECK (role IN ('customer', 'engineer', 'admin')),
+    role          TEXT NOT NULL CHECK (role IN ('customer', 'engineer', 'admin', 'hod')),
     full_name     TEXT NOT NULL,
     email         TEXT,
     phone         TEXT,
@@ -31,7 +31,9 @@ CREATE TABLE IF NOT EXISTS users (
 CREATE TABLE IF NOT EXISTS requests (
     id             INTEGER PRIMARY KEY,
     customer_id    INTEGER NOT NULL REFERENCES users(id),
+    ref            TEXT UNIQUE,          -- REQ-2026-0042 (customer-facing reference)
     status         TEXT NOT NULL,
+    template_id    INTEGER,              -- report template used when the report was generated
     sample_code    TEXT,                 -- HVD25S0847 (allocated on accept)
     report_no      TEXT,                 -- CPRIBLRSCL25T1654 (allocated on accept)
     amends_id      INTEGER REFERENCES requests(id),   -- amended report -> original job
@@ -74,7 +76,7 @@ CREATE TABLE IF NOT EXISTS job_engineers (
 CREATE TABLE IF NOT EXISTS files (
     id            INTEGER PRIMARY KEY,
     job_id        INTEGER REFERENCES requests(id),
-    kind          TEXT NOT NULL,     -- request_form | drawing | logsheet
+    kind          TEXT NOT NULL,     -- request_document | logsheet | logsheet_scan | template
     station       TEXT,
     original_name TEXT NOT NULL,
     stored_path   TEXT NOT NULL,
@@ -94,8 +96,12 @@ CREATE TABLE IF NOT EXISTS readings (
     imported_value TEXT,
     current_value  TEXT,
     unit           TEXT,
+    source         TEXT NOT NULL DEFAULT 'excel',   -- excel | ai | manual
     source_file_id INTEGER REFERENCES files(id),
     source_cell    TEXT,
+    ai_confidence  REAL,
+    verified_by    INTEGER REFERENCES users(id),    -- set when an AI-extracted value is confirmed
+    verified_at    TEXT,
     version        INTEGER NOT NULL DEFAULT 1,
     updated_by     INTEGER REFERENCES users(id),
     updated_at     TEXT,
@@ -154,9 +160,141 @@ CREATE TABLE IF NOT EXISTS reports (
     sha256_pdf       TEXT,
     docx_path        TEXT NOT NULL,
     pdf_path         TEXT,
-    issued_by        INTEGER REFERENCES users(id),
+    template_id      INTEGER,
+    template_version INTEGER,
+    template_sha     TEXT,
+    issued_by        INTEGER REFERENCES users(id),     -- HOD who authorised
+    forwarded_by     INTEGER REFERENCES users(id),     -- admin who forwarded
     issued_at        TEXT NOT NULL
 );
+
+
+-- Admin actions that need HOD sign-off. Applied only when approved.
+CREATE TABLE IF NOT EXISTS approval_requests (
+    id           INTEGER PRIMARY KEY,
+    type         TEXT NOT NULL,
+    entity_type  TEXT,
+    entity_id    TEXT,
+    summary      TEXT,
+    payload_json TEXT NOT NULL,
+    status       TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected', 'cancelled', 'failed')),
+    requested_by INTEGER REFERENCES users(id),
+    requested_at TEXT NOT NULL,
+    decided_by   INTEGER REFERENCES users(id),
+    decided_at   TEXT,
+    comment      TEXT,
+    result_json  TEXT,
+    version      INTEGER NOT NULL DEFAULT 1
+);
+CREATE INDEX IF NOT EXISTS ix_approvals_status ON approval_requests(status);
+CREATE INDEX IF NOT EXISTS ix_approvals_entity ON approval_requests(entity_type, entity_id);
+
+CREATE TABLE IF NOT EXISTS notifications (
+    id         INTEGER PRIMARY KEY,
+    user_id    INTEGER REFERENCES users(id),   -- a specific user, or NULL + role for everyone in a role
+    role       TEXT,
+    message    TEXT NOT NULL,
+    link       TEXT,
+    created_at TEXT NOT NULL,
+    read_at    TEXT
+);
+CREATE INDEX IF NOT EXISTS ix_notifications_user ON notifications(user_id, read_at);
+
+-- Field registry (seeded from mappings/fields.yaml). `rev` increments on every approved change.
+CREATE TABLE IF NOT EXISTS field_registry (
+    key          TEXT PRIMARY KEY,
+    label        TEXT NOT NULL,
+    unit         TEXT,
+    dtype        TEXT NOT NULL DEFAULT 'number',
+    dp           INTEGER,
+    source       TEXT NOT NULL,
+    test_code    TEXT,
+    station      TEXT,
+    required     INTEGER NOT NULL DEFAULT 0,
+    formula      TEXT,
+    stage        TEXT,
+    ui           TEXT,
+    options_json TEXT,
+    section      TEXT,
+    sheet        TEXT,
+    row_label    TEXT,
+    col_label    TEXT,
+    report_label TEXT,
+    multi        INTEGER NOT NULL DEFAULT 0,
+    display_order INTEGER NOT NULL DEFAULT 0,
+    active       INTEGER NOT NULL DEFAULT 1,
+    extra_json   TEXT
+);
+
+CREATE TABLE IF NOT EXISTS test_catalogue (
+    code           TEXT PRIMARY KEY,
+    name           TEXT NOT NULL,
+    grp            TEXT NOT NULL CHECK (grp IN ('special', 'type', 'routine')),
+    clause         TEXT,
+    standard       TEXT,
+    station        TEXT,
+    excel_template TEXT,
+    report_section TEXT,
+    display_order  INTEGER NOT NULL DEFAULT 0,
+    active         INTEGER NOT NULL DEFAULT 1
+);
+
+CREATE TABLE IF NOT EXISTS stations (
+    code     TEXT PRIMARY KEY,
+    title    TEXT NOT NULL,
+    logsheet TEXT,
+    file     TEXT
+);
+
+-- Background AI jobs (Gemini). The UI polls /api/ai/tasks/<id>.
+CREATE TABLE IF NOT EXISTS ai_tasks (
+    id          INTEGER PRIMARY KEY,
+    kind        TEXT NOT NULL,             -- request_form | logsheet | template_mapping
+    status      TEXT NOT NULL DEFAULT 'queued' CHECK (status IN ('queued', 'running', 'done', 'failed', 'disabled')),
+    input_json  TEXT,
+    result_json TEXT,
+    error       TEXT,
+    created_by  INTEGER REFERENCES users(id),
+    created_at  TEXT NOT NULL,
+    started_at  TEXT,
+    finished_at TEXT
+);
+
+-- Traceability of every AI call (raw response, model, prompt version, latency).
+CREATE TABLE IF NOT EXISTS ai_extractions (
+    id             INTEGER PRIMARY KEY,
+    task_id        INTEGER REFERENCES ai_tasks(id),
+    kind           TEXT NOT NULL,
+    file_id        INTEGER REFERENCES files(id),
+    model          TEXT,
+    prompt_version TEXT,
+    latency_ms     INTEGER,
+    tokens         INTEGER,
+    raw_response   TEXT,
+    created_at     TEXT NOT NULL
+);
+
+-- Versioned report templates. Never deleted; an active/retired template is frozen.
+CREATE TABLE IF NOT EXISTS report_templates (
+    id             INTEGER PRIMARY KEY,
+    name           TEXT NOT NULL,
+    equipment_type TEXT NOT NULL,
+    version        INTEGER NOT NULL,
+    source_path    TEXT NOT NULL,
+    source_docx_sha TEXT NOT NULL,
+    compiled_path  TEXT,
+    compiled_sha   TEXT,
+    mapping_json   TEXT NOT NULL,
+    status         TEXT NOT NULL DEFAULT 'draft' CHECK (status IN ('draft', 'pending_hod', 'active', 'retired')),
+    notes          TEXT,
+    created_by     INTEGER REFERENCES users(id),
+    created_at     TEXT NOT NULL,
+    approved_by    INTEGER REFERENCES users(id),
+    approved_at    TEXT,
+    version_row    INTEGER NOT NULL DEFAULT 1,
+    UNIQUE (equipment_type, version)
+);
+CREATE UNIQUE INDEX IF NOT EXISTS ux_one_active_template ON report_templates(equipment_type) WHERE status = 'active';
 
 -- Atomic per-year counters for sample codes and report numbers.
 CREATE TABLE IF NOT EXISTS counters (
@@ -265,6 +403,16 @@ BEGIN SELECT RAISE(ABORT, 'APPEND-ONLY: corrections can not be modified'); END;
 
 CREATE TRIGGER IF NOT EXISTS trg_corrections_no_del BEFORE DELETE ON corrections
 BEGIN SELECT RAISE(ABORT, 'APPEND-ONLY: corrections can not be deleted'); END;
+
+CREATE TRIGGER IF NOT EXISTS trg_templates_no_del BEFORE DELETE ON report_templates
+BEGIN SELECT RAISE(ABORT, 'IMMUTABLE: report templates are never deleted - retire them instead'); END;
+
+CREATE TRIGGER IF NOT EXISTS trg_templates_frozen BEFORE UPDATE OF mapping_json, compiled_path, compiled_sha, source_path, source_docx_sha ON report_templates
+WHEN OLD.status IN ('active', 'retired')
+BEGIN SELECT RAISE(ABORT, 'IMMUTABLE: an active or retired template can not be changed - create a new version'); END;
+
+CREATE TRIGGER IF NOT EXISTS trg_approvals_no_del BEFORE DELETE ON approval_requests
+BEGIN SELECT RAISE(ABORT, 'APPEND-ONLY: approval requests can not be deleted'); END;
 
 CREATE TRIGGER IF NOT EXISTS trg_audit_no_upd BEFORE UPDATE ON audit_log
 BEGIN SELECT RAISE(ABORT, 'APPEND-ONLY: audit log can not be modified'); END;

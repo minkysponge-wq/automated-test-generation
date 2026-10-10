@@ -52,11 +52,32 @@ def tx(conn):
         conn.execute("COMMIT")
 
 
-def init_db(path=None):
-    """Create tables/triggers if they do not exist (idempotent)."""
-    conn = connect(path)
+_initialised = set()
+MIGRATIONS = ["ALTER TABLE ai_extractions ADD COLUMN tokens INTEGER"]
+
+
+def init_db_conn(conn, path=None, force=False):
+    """Run schema.sql once per database file per process (idempotent CREATE ... IF NOT EXISTS)."""
+    path = os.path.abspath(path or config.DB_PATH)
+    if path in _initialised and not force:
+        return
     with open(SCHEMA_PATH, encoding="utf-8") as fh:
         conn.executescript(fh.read())
+    for sql in MIGRATIONS:               # columns added after a database was created
+        try:
+            conn.execute(sql)
+        except sqlite3.OperationalError:
+            pass
+    _initialised.add(path)
+
+
+def init_db(path=None):
+    """Create tables/triggers if they do not exist and seed the field registry."""
+    conn = connect(path)
+    init_db_conn(conn, path, force=True)
+    if path is None or os.path.abspath(path) == os.path.abspath(config.DB_PATH):
+        from . import fields
+        fields.seed(conn)
     conn.close()
 
 

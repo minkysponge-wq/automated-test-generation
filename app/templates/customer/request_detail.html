@@ -1,64 +1,70 @@
 {% extends "base.html" %}
-{% from "_macros.html" import badge, timeline, verify_box with context %}
-{% block title %}Request #{{ job.id }}{% endblock %}
+{% from "components/macros.html" import status_badge, stepper, verify_box with context %}
+{% set nav = 'customer.dashboard' %}
+{% block title %}Request {{ job.ref or job.id }}{% endblock %}
+{% block heading %}Request {{ job.ref or job.id }} <span class="sub">{{ STATE_LABELS[job.status] }}</span>{% endblock %}
 {% block content %}
-<div class="page-head">
-  <h1>Request #{{ job.id }} {{ badge(job.status) }}</h1>
-  <a class="btn" href="{{ url_for('customer.dashboard') }}">← All requests</a>
+<div data-poll="{{ url_for('api.job_status', job_id=job.id) }}" data-version="{{ job.version }}">
+  {{ stepper(job) }}
+  <p class="note poll-note" style="margin-top:6px"></p>
 </div>
-<div class="card" data-poll="{{ url_for('api.job_status', job_id=job.id) }}" data-version="{{ job.version }}">
-  {{ timeline(job) }}
-  <div class="kv-row">
-    <div><span class="lbl">CPRI sample code</span><b class="mono">{{ job.sample_code or 'issued on acceptance' }}</b></div>
-    <div><span class="lbl">Test report number</span><b class="mono">{{ job.report_no or 'issued on acceptance' }}</b></div>
-    <div><span class="lbl">Submitted</span><b>{{ job.created_at|dt }}</b></div>
-    {% if job.issued_at %}<div><span class="lbl">Issued</span><b>{{ job.issued_at|dt }}</b></div>{% endif %}
-  </div>
-  <div class="poll-note muted"></div>
+{% if job.status == 'REJECTED' %}<div class="callout bad">The request was not accepted: {{ job.reject_reason }}</div>{% endif %}
+
+<div class="facts">
+  <div><div class="k">Reference</div><div class="v small mono">{{ job.ref }}</div></div>
+  <div><div class="k">CPRI sample code</div><div class="v small mono">{{ job.sample_code or 'Assigned on acceptance' }}</div></div>
+  <div><div class="k">Test report number</div><div class="v small mono">{{ job.report_no or 'Assigned on acceptance' }}</div></div>
+  <div><div class="k">Submitted</div><div class="v small">{{ job.created_at|dt }}</div></div>
+  <div><div class="k">Issued</div><div class="v small">{{ job.issued_at|dt if job.issued_at else '-' }}</div></div>
 </div>
 
 {% if rep %}
-<div class="card report-card">
-  <h2>Issued test report</h2>
-  <div class="dl-row">
-    {% if rep.pdf_path %}<a class="btn btn-primary" id="dl-pdf" href="{{ url_for('customer.download_report', job_id=job.id, fmt='pdf') }}">⬇ Download PDF</a>{% endif %}
-    <a class="btn" id="dl-docx" href="{{ url_for('customer.download_report', job_id=job.id, fmt='docx') }}">⬇ Download DOCX</a>
+<div class="panel">
+  <div class="panel-head"><h2>Issued test report</h2>
+    <div>{% if rep.pdf_path %}<a class="btn btn-primary btn-sm" id="dl-pdf" href="{{ url_for('customer.download_report', job_id=job.id, fmt='pdf') }}">Download PDF</a>{% endif %}
+      <a class="btn btn-sm" id="dl-docx" href="{{ url_for('customer.download_report', job_id=job.id, fmt='docx') }}">Download DOCX</a></div></div>
+  <div class="panel-body">
+    <table class="kv"><tr><th>Seal (SHA-256)</th><td class="mono">{{ rep.sha256_snapshot }}</td></tr></table>
+    {{ verify_box(url_for('customer.verify', job_id=job.id)) }}
+    <p class="note">Anyone holding the report can check it at <span class="mono">/verify/{{ rep.report_no }}</span>; the QR code on the report links there.</p>
   </div>
-  <p>SHA-256 seal: <code class="mono">{{ rep.sha256_snapshot }}</code></p>
-  {{ verify_box(url_for('customer.verify', job_id=job.id)) }}
-  <p class="muted small">Anyone can also verify this report at <code>/verify/{{ rep.report_no }}</code> (the QR code on the report links there).</p>
-</div>
-{% endif %}
-{% if amendments %}
-<div class="card"><h3>Amended reports</h3>
-  <ul>{% for a in amendments %}<li><a href="{{ url_for('customer.request_detail', job_id=a.id) }}">{{ a.report_no }}</a> {{ badge(a.status) }}</li>{% endfor %}</ul>
 </div>
 {% endif %}
 
-<div class="grid2">
-  <div class="card">
-    <h3>Sample</h3>
-    <table class="kv">
+<div class="split">
+  <div class="panel">
+    <div class="panel-head"><h2>Sample</h2></div>
+    <div class="panel-body"><table class="kv">
       <tr><th>Customer</th><td>{{ form.customer_name }}</td></tr>
-      <tr><th>Sample</th><td>{{ form.samples }} - {{ form.rating }}</td></tr>
-      <tr><th>Serial no.</th><td>{{ form.serial_numbers }}</td></tr>
+      <tr><th>Sample</th><td>{{ form.samples }}, {{ form.rating }}</td></tr>
+      <tr><th>Serial number</th><td>{{ form.serial_numbers }}</td></tr>
       <tr><th>Manufacturer</th><td>{{ form.manufacturer }}</td></tr>
-      <tr><th>Standard</th><td>{{ form.criteria }}</td></tr>
+      <tr><th>Criteria</th><td>{{ form.criteria }}</td></tr>
       <tr><th>Witness</th><td>{{ form.witness_customer }}</td></tr>
-    </table>
+    </table></div>
   </div>
-  <div class="card">
-    <h3>Tests requested</h3>
-    <ul class="testlist">{% for c in tests %}<li>{{ TESTS[c].label }} <span class="clause">[{{ TESTS[c].clause }}]</span></li>{% endfor %}</ul>
-    {% if files %}<h3>Documents</h3><ul>{% for f in files %}<li><a href="{{ url_for('customer.download_file', job_id=job.id, file_id=f.id) }}">{{ f.original_name }}</a></li>{% endfor %}</ul>{% endif %}
+  <div class="panel">
+    <div class="panel-head"><h2>Tests requested</h2></div>
+    <div class="panel-body flush"><table class="table compact">
+      {% for c in tests if c in TESTS %}<tr><td>{{ TESTS[c].name }}</td><td class="nowrap muted">{{ TESTS[c].clause }}</td></tr>{% endfor %}
+    </table></div>
   </div>
 </div>
-<div class="card">
-  <h3>History</h3>
-  <table class="tbl compact">
-    {% for h in history %}{% set a = h.after_json|fromjson %}
-      <tr><td>{{ h.ts|dt }}</td><td>{{ 'Submitted' if h.action == 'request.submit' else STATE_LABELS.get(a.status, h.action) }}</td><td class="muted">{{ a.reason or a.comment or '' }}</td></tr>
-    {% endfor %}
-  </table>
+
+<div class="split">
+  <div class="panel">
+    <div class="panel-head"><h2>Messages from the laboratory</h2></div>
+    {% if messages %}<table class="table compact">{% for m in messages %}<tr><td class="nowrap">{{ m.created_at|dt }}</td><td>{{ m.message }}</td></tr>{% endfor %}</table>
+    {% else %}<div class="empty">No messages.</div>{% endif %}
+  </div>
+  <div class="panel">
+    <div class="panel-head"><h2>Documents</h2></div>
+    {% if files %}<table class="table compact">{% for f in files %}<tr><td><a href="{{ url_for('customer.download_file', job_id=job.id, file_id=f.id) }}">{{ f.original_name }}</a></td><td class="mono small">{{ f.sha256[:12] }}</td></tr>{% endfor %}</table>
+    {% else %}<div class="empty">No documents.</div>{% endif %}
+  </div>
 </div>
+{% if amendments %}
+<div class="panel"><div class="panel-head"><h2>Amended reports</h2></div>
+  <table class="table compact">{% for a in amendments %}<tr><td><a href="{{ url_for('customer.request_detail', job_id=a.id) }}">{{ a.report_no }}</a></td><td>{{ status_badge(a.status) }}</td></tr>{% endfor %}</table></div>
+{% endif %}
 {% endblock %}

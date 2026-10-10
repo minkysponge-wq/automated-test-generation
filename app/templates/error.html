@@ -1,9 +1,9 @@
 {% extends "base.html" %}
 {% block title %}Error {{ code }}{% endblock %}
 {% block content %}
-<div class="card center-card">
-  <h1>{{ code }}</h1>
-  <p>{{ message }}</p>
-  <p><a class="btn" href="{{ url_for('public.landing') }}">Back to start</a></p>
-</div>
+<div class="auth"><div class="panel"><div class="panel-body">
+  <h1>Error {{ code }}</h1>
+  <p class="muted">{{ message }}</p>
+  <p><a class="btn btn-sm" href="{{ url_for('public.landing') }}">Go to the start page</a></p>
+</div></div></div>
 {% endblock %}

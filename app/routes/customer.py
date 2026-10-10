@@ -1,7 +1,7 @@
 """
-Customer portal: new test request, tracking, sealed report download.
+Customer portal: new test request (scanned PDF read by AI, or manual entry), tracking,
+issued report download and integrity verification.
 """
-import io
 import json
 import os
 import tempfile
@@ -10,6 +10,7 @@ from flask import Blueprint, abort, flash, g, jsonify, redirect, render_template
 
 import config
 from .. import audit, excel_io, fields as F, integrity, jobs, request_form, workflow
+from ..ai import client as ai, intake
 from ..auth import role_required
 from ..db import get_db, tx
 from .common import register_auth_views
@@ -28,10 +29,16 @@ def _own_job(job_id):
 @bp.route("/")
 @role_required("customer")
 def dashboard():
-    conn = get_db()
-    rows = conn.execute("SELECT r.*, rp.id AS report_id FROM requests r LEFT JOIN reports rp ON rp.job_id=r.id "
-                        "WHERE r.customer_id=? ORDER BY r.id DESC", (g.user["id"],)).fetchall()
+    rows = get_db().execute("SELECT r.*, rp.id AS report_id FROM requests r LEFT JOIN reports rp ON rp.job_id=r.id "
+                            "WHERE r.customer_id=? ORDER BY r.id DESC", (g.user["id"],)).fetchall()
     return render_template("customer/dashboard.html", rows=rows)
+
+
+def _form_page(prefill, prefill_tests, prefill_drawings, errors=None, source_file_id="", extraction_id=""):
+    return render_template("customer/new_request.html", sections=request_form.sections(),
+                           declaration=request_form.DECLARATION, prefill=prefill, prefill_tests=prefill_tests,
+                           prefill_drawings=prefill_drawings, errors=errors or {}, ai_on=ai.available(),
+                           ai_notice=ai.disabled_reason(), source_file_id=source_file_id, extraction_id=extraction_id)
 
 
 @bp.route("/requests/new", methods=["GET", "POST"])
@@ -41,28 +48,57 @@ def new_request():
     if request.method == "POST":
         data, tests, errors = request_form.parse_form(request.form, list(F.tests()))
         files = [f for f in request.files.getlist("documents") if f and f.filename]
+        src = request.form.get("source_file_id") or None
         if errors:
-            for e in errors:
-                flash(e, "danger")
-            return render_template("customer/new_request.html", sections=request_form.SECTIONS,
-                                   declaration=request_form.DECLARATION, prefill=request.form, prefill_tests=tests,
-                                   prefill_drawings=data.get("drawings", []))
+            flash("Please correct the highlighted fields.", "danger")
+            return _form_page(request.form, tests, data.get("drawings", []), errors, src or "",
+                              request.form.get("extraction_id", ""))
         with tx(conn):
-            job_id = jobs.create_request(conn, g.user, data, tests)
+            job_id, ref = jobs.create_request(conn, g.user, data, tests, int(src) if src else None,
+                                              request.form.get("extraction_id") or None)
             for f in files:
                 jobs.save_upload(conn, f, job_id, "request_document", g.user, config.ALLOWED_DOC_EXT)
-        flash("Test request submitted. CPRI will review it and issue a sample code.", "success")
+        flash(f"Request submitted. Reference: {ref}.", "success")
         return redirect(url_for("customer.request_detail", job_id=job_id))
     prefill = {"customer_name": g.user.get("company") or "", "customer_address": g.user.get("address") or ""}
-    return render_template("customer/new_request.html", sections=request_form.SECTIONS,
-                           declaration=request_form.DECLARATION, prefill=prefill, prefill_tests=[], prefill_drawings=[])
+    return _form_page(prefill, [], [])
+
+
+@bp.route("/requests/scan", methods=["POST"])
+@role_required("customer")
+def upload_scan():
+    """Read the filled request form (PDF / photo / Excel in any layout) in the background.
+    Either a new file, or file_id + force_pro=1 to re-read a stored file with the higher-accuracy model."""
+    conn = get_db()
+    force_pro = request.form.get("force_pro") == "1"
+    with tx(conn):
+        if request.form.get("file_id"):
+            row = conn.execute("SELECT * FROM files WHERE id=? AND uploaded_by=?",
+                               (int(request.form["file_id"]), g.user["id"])).fetchone()
+            if row is None:
+                return jsonify(ok=False, error="File not found."), 404
+        else:
+            f = request.files.get("file")
+            if not f or not f.filename:
+                return jsonify(ok=False, error="Choose the filled request form."), 400
+            fid = jobs.save_upload(conn, f, None, "request_document", g.user, intake.ACCEPTED)
+            row = conn.execute("SELECT * FROM files WHERE id=?", (fid,)).fetchone()
+        file_id, path = row["id"], row["stored_path"]
+        task_id = ai.submit(conn, "request_form", {"file_id": file_id, "force_pro": force_pro},
+                            lambda tid, c: intake.read_document(path, "request_form", c, tid, file_id, force_pro),
+                            g.user)
+        audit.log(conn, "ai.read_document", "file", file_id, None,
+                  {"kind": "request_form", "task": task_id, "force_pro": force_pro})
+    return jsonify(ok=True, task_id=task_id, file_id=file_id, ai=ai.available(), notice=ai.disabled_reason())
 
 
 @bp.route("/requests/template.xlsx")
 @role_required("customer")
 def request_template():
-    return send_file(os.path.join(config.EXCEL_TEMPLATE_DIR, "customer_request_template.xlsx"), as_attachment=True,
-                     download_name="customer_request_template.xlsx")
+    wb = excel_io.build_request_template(request_form.sections())
+    path = os.path.join(tempfile.mkdtemp(), "customer_request_template.xlsx")
+    wb.save(path)
+    return send_file(path, as_attachment=True, download_name="customer_request_template.xlsx")
 
 
 @bp.route("/requests/parse-excel", methods=["POST"])
@@ -77,14 +113,13 @@ def parse_excel():
         tmp.close()
         values = excel_io.parse_request_workbook(tmp.name)
     except Exception as exc:
-        return jsonify(ok=False, error=f"Could not read workbook: {exc}"), 400
+        return jsonify(ok=False, error=f"Could not read the workbook: {exc}"), 400
     finally:
         try:
             os.unlink(tmp.name)
         except OSError:
             pass
-    out = request_form.from_excel(values, list(F.tests()))
-    return jsonify(ok=True, **out)
+    return jsonify(ok=True, **request_form.from_excel(values, list(F.tests())))
 
 
 @bp.route("/requests/<int:job_id>")
@@ -96,9 +131,13 @@ def request_detail(job_id):
     files = conn.execute("SELECT * FROM files WHERE job_id=? AND kind='request_document'", (job_id,)).fetchall()
     history = conn.execute("SELECT ts, action, after_json FROM audit_log WHERE entity_type='job' AND entity_id=? "
                            "AND (action LIKE 'job.%' OR action='request.submit') ORDER BY id", (str(job_id),)).fetchall()
-    amendments = conn.execute("SELECT id, report_no, status FROM requests WHERE amends_id=?", (job["amends_id"] or job_id,)).fetchall()
+    amendments = conn.execute("SELECT id, report_no, status FROM requests WHERE amends_id=?",
+                              (job["amends_id"] or job_id,)).fetchall()
+    messages = conn.execute("SELECT * FROM notifications WHERE user_id=? AND link LIKE ? ORDER BY id DESC",
+                            (g.user["id"], f"%/requests/{job_id}")).fetchall()
     return render_template("customer/request_detail.html", job=job, form=json.loads(job["form_json"]),
-                           tests=workflow.tests_of(job), rep=rep, files=files, history=history, amendments=amendments)
+                           tests=workflow.tests_of(job), rep=rep, files=files, history=history,
+                           amendments=amendments, messages=messages)
 
 
 @bp.route("/requests/<int:job_id>/report.<fmt>")
@@ -134,7 +173,8 @@ def verify(job_id):
 @role_required("customer")
 def download_file(job_id, file_id):
     _own_job(job_id)
-    f = get_db().execute("SELECT * FROM files WHERE id=? AND job_id=? AND kind='request_document'", (file_id, job_id)).fetchone()
+    f = get_db().execute("SELECT * FROM files WHERE id=? AND job_id=? AND kind='request_document'",
+                         (file_id, job_id)).fetchone()
     if f is None:
         abort(404)
     return send_file(f["stored_path"], as_attachment=True, download_name=f["original_name"])

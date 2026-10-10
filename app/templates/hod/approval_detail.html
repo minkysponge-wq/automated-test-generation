@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+{% from "components/macros.html" import approval_badge, result_badge, status_badge with context %}
+{% set nav = 'hod.approval_list' %}
+{% block title %}{{ ap.summary }}{% endblock %}
+{% block actions %}{{ approval_badge(ap.status) }}{% endblock %}
+{% block content %}
+<div class="facts">
+  <div><div class="k">Type</div><div class="v small">{{ spec.label if spec else ap.type }}</div></div>
+  <div><div class="k">Requested by</div><div class="v small">{{ ap.requester or '-' }}</div></div>
+  <div><div class="k">Requested</div><div class="v small">{{ ap.requested_at|dt }}{% if ap.status == 'pending' %} ({{ age(ap.requested_at) }} ago){% endif %}</div></div>
+  {% if ap.decided_at %}<div><div class="k">Decided by</div><div class="v small">{{ ap.decider }}, {{ ap.decided_at|dt }}</div></div>{% endif %}
+</div>
+{% if ap.comment %}<div class="callout {{ 'bad' if ap.status == 'rejected' else '' }}">{{ ap.comment }}</div>{% endif %}
+
+{# ---------------------------------------------------------------- final report authorization #}
+{% if ap.type == 'issue_report' and job %}
+<div class="panel">
+  <div class="panel-head"><h2>{{ job.report_no }} - {{ form.customer_name }}</h2>{{ status_badge(job.status) }}</div>
+  <div class="panel-body split">
+    <table class="kv">
+      <tr><th>Sample code</th><td class="mono">{{ job.sample_code }}</td></tr>
+      <tr><th>Sample</th><td>{{ form.samples }}, {{ form.rating }}</td></tr>
+      <tr><th>Serial number</th><td>{{ form.serial_numbers }}</td></tr>
+    </table>
+    <table class="kv">
+      <tr><th>Engineers</th><td>{% for e in engineers %}{{ e.full_name }}{% if e.role == 'responsible' %} (responsible){% endif %}{% if not loop.last %}, {% endif %}{% endfor %}</td></tr>
+      <tr><th>Rule checks</th><td>{{ results|selectattr('passed', 'equalto', 1)|list|length }} pass, {{ results|selectattr('passed', 'equalto', 0)|list|length }} fail</td></tr>
+      <tr><th>Corrections</th><td>{{ corrections|length }}</td></tr>
+    </table>
+  </div>
+  <div class="panel-body"><a class="btn btn-sm" target="_blank" href="{{ url_for('hod.approval_preview', aid=ap.id) }}" id="hod-preview">Open report preview</a>
+    <span class="note">Preview with your name in "Reviewed and Authorized by" applied on issue.</span></div>
+</div>
+<div class="panel">
+  <div class="panel-head"><h2>Rule checks</h2></div>
+  <div class="table-wrap" style="max-height:360px">
+  <table class="table compact">
+    <thead><tr><th>Result</th><th>Check</th><th class="num">Value</th><th>Limit used</th></tr></thead>
+    {% for r in results %}<tr class="{{ 'is-fail' if r.passed == 0 }}"><td>{{ result_badge(r.passed) }}</td><td>{{ r.label }}</td><td class="num">{{ r.value }}</td><td>{{ r.limit_text }}</td></tr>{% endfor %}
+  </table>
+  </div>
+</div>
+{% if corrections %}
+<div class="panel"><div class="panel-head"><h2>Corrections</h2></div>
+  <table class="table compact"><thead><tr><th>When</th><th>Who</th><th>Field</th><th class="num">Old</th><th class="num">New</th><th>Reason</th></tr></thead>
+    {% for c in corrections %}<tr><td class="nowrap">{{ c.ts|dt }}</td><td>{{ c.full_name }}</td><td class="mono">{{ c.key }}</td><td class="num"><span class="was">{{ c.old_value }}</span></td><td class="num corrected">{{ c.new_value }}</td><td>{{ c.reason }}</td></tr>{% endfor %}</table></div>
+{% endif %}
+
+{# ---------------------------------------------------------------- template activation #}
+{% elif ap.type == 'template_activation' and template %}
+{% set st = tmapping.stats %}
+<div class="panel">
+  <div class="panel-head"><h2>{{ template.name }} v{{ template.version }}</h2>
+    <a class="btn btn-sm" target="_blank" href="{{ url_for('hod.template_dryrun', tid=template.id) }}" id="hod-dryrun">Open dry-run report</a></div>
+  <div class="panel-body"><table class="kv">
+    <tr><th>Equipment type</th><td>{{ template.equipment_type }}</td></tr>
+    <tr><th>Mapped value places</th><td>{{ st.mapped_required }} of {{ st.required }} required ({{ '%.0f'|format(st.coverage * 100) }}%)</td></tr>
+    <tr><th>Mapped automatically on upload</th><td>{% if tmapping.auto_stats %}{{ '%.0f'|format(tmapping.auto_stats.coverage * 100) }}%{% else %}-{% endif %}</td></tr>
+    <tr><th>Sections</th><td>{{ (tmapping.sections or [])|length }}</td></tr>
+    <tr><th>Dry run</th><td>{{ 'No unfilled places' if not tmapping.dry_run.unfilled else tmapping.dry_run.unfilled|length ~ ' unfilled place(s)' }}</td></tr>
+    <tr><th>Compiled SHA-256</th><td class="mono">{{ template.compiled_sha }}</td></tr>
+  </table>
+  <p class="note">On approval this version becomes the active template for its equipment type; the previous version is retired (kept for verification of old reports).</p></div>
+</div>
+
+{# ---------------------------------------------------------------- other types #}
+{% elif ap.type == 'admin_account' and user %}
+<div class="panel"><div class="panel-head"><h2>New Test In-charge account</h2></div>
+  <div class="panel-body"><table class="kv"><tr><th>Name</th><td>{{ user.full_name }}</td></tr><tr><th>Username</th><td class="mono">{{ user.username }}</td></tr>
+    <tr><th>E-mail</th><td>{{ user.email }}</td></tr><tr><th>Phone</th><td>{{ user.phone }}</td></tr><tr><th>Registered</th><td>{{ user.created_at|dt }}</td></tr></table></div></div>
+{% elif ap.type == 'registry_change' %}
+<div class="panel"><div class="panel-head"><h2>Field registry changes</h2></div>
+  <table class="table compact"><thead><tr><th>Field</th><th>Attribute</th><th>Current</th><th>Proposed</th></tr></thead>
+  {% for ch in payload.changes %}{% set f = ch.field %}{% set cur = current.get(f.key) if f else none %}
+    {% for k, v in f.items() if (cur is none and v not in (none, '', false)) or (cur is not none and cur.get(k) != v and not (cur.get(k) in (none, '') and v in (none, ''))) %}
+      <tr><td class="mono">{{ f.key }}</td><td>{{ k }}</td><td class="mono small">{{ cur.get(k) if cur is not none else '(new field)' }}</td><td class="mono small">{{ v }}</td></tr>
+    {% endfor %}
+  {% endfor %}</table></div>
+{% elif ap.type == 'settings_change' %}
+<div class="panel"><div class="panel-head"><h2>Configuration changes</h2></div>
+  <table class="table compact"><thead><tr><th>Setting</th><th class="num">Current</th><th class="num">Proposed</th></tr></thead>
+  {% for k, v in payload.changes.items() %}<tr><td>{{ k }}</td><td class="num">{{ current.get(k) }}</td><td class="num">{{ v }}</td></tr>{% endfor %}</table></div>
+{% elif job %}
+<div class="panel"><div class="panel-head"><h2>{{ job.report_no or job.ref }} - {{ form.customer_name }}</h2>{{ status_badge(job.status) }}</div>
+  <div class="panel-body"><table class="kv">{% for k, v in payload.items() if k not in ('job_id', 'version') %}<tr><th>{{ k }}</th><td class="small">{{ v }}</td></tr>{% endfor %}</table></div></div>
+{% endif %}
+
+{% if ap.status == 'pending' %}
+<form method="post" action="{{ url_for('hod.decide', aid=ap.id) }}" class="panel" id="decide-form">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <div class="panel-head"><h2>Decision</h2></div>
+  <div class="panel-body">
+    <label>Comment <span class="hint">Required when rejecting; recorded in the activity log.</span><textarea name="comment" rows="3"></textarea></label>
+    <div class="form-actions">
+      <button class="btn btn-danger" name="decision" value="reject" id="reject-btn">Reject</button>
+      <button class="btn btn-primary" name="decision" value="approve" id="approve-btn"
+        {% if ap.type == 'issue_report' %}data-confirm-title="Authorize and issue {{ job.report_no }}"
+        data-confirm="The report will be generated with your name as the authorizing officer, sealed with a SHA-256 hash and issued to the customer. After this no reading, result or report file of this job can be changed."{% endif %}>
+        {{ 'Authorize and issue' if ap.type == 'issue_report' else 'Approve' }}</button>
+    </div>
+  </div>
+</form>
+{% endif %}
+{% endblock %}

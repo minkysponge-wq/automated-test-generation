@@ -1,0 +1,73 @@
+{%- from "components/macros.html" import icon with context -%}
+{%- set role = role if role is defined else (g.role if g.role is defined else None) -%}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="csrf-token" content="{{ csrf_token() }}">
+  <title>{% block title %}ATRG{% endblock %} - CPRI ATRG</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+{%- set NAV = {
+  'customer': [('customer.dashboard', 'Requests', 'list'), ('customer.new_request', 'New request', 'file-plus'),
+               ('customer.notifications', 'Notifications', 'bell')],
+  'engineer': [('engineer.dashboard', 'My jobs', 'list'), ('engineer.notifications', 'Notifications', 'bell')],
+  'admin': [('admin.dashboard', 'Requests', 'home'), ('admin.engineers', 'Engineers', 'users'),
+            ('admin.templates', 'Report templates', 'layout'), ('admin.registry', 'Field registry', 'database'),
+            ('admin.audit_log', 'Activity log', 'activity'), ('admin.settings', 'Configuration', 'settings'),
+            ('admin.notifications', 'Notifications', 'bell')],
+  'hod': [('hod.approval_list', 'Approvals', 'inbox'), ('hod.dashboard', 'Dashboard', 'home'),
+          ('hod.audit_log', 'Activity log', 'activity'), ('hod.settings', 'Settings', 'settings'),
+          ('hod.accounts', 'Accounts', 'users'), ('hod.system', 'System', 'server'),
+          ('hod.notifications', 'Notifications', 'bell')],
+} -%}
+{%- set current_nav = nav if nav is defined else request.endpoint -%}
+<body class="app role-{{ role }}">
+<aside class="sidebar">
+  <div class="brand">
+    <div class="brand-name">CPRI ATRG</div>
+    <div class="brand-sub">Short Circuit Laboratory, Bengaluru</div>
+    <div class="brand-role">{{ ROLE_META[role].title }}</div>
+  </div>
+  <ul class="nav">
+    {%- for ep, label, ic in NAV[role] %}
+    <li><a href="{{ url_for(ep) }}" class="{{ 'active' if current_nav == ep }}">{{ icon(ic) }}<span>{{ label }}</span>
+      {%- if ic == 'bell' and unread_count %}<span class="count">{{ unread_count }}</span>{% endif %}</a></li>
+    {%- endfor %}
+  </ul>
+  <div class="sidebar-foot">
+    <div class="who">{{ g.user.full_name }}</div>
+    <div>{{ g.user.username }}</div>
+    <form method="post" action="{{ url_for(role ~ '.logout') }}" style="margin-top:8px">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button class="btn-link small">Sign out</button>
+    </form>
+  </div>
+</aside>
+<div class="main">
+  <header class="topbar">
+    <h1 class="page-title">{% block heading %}{{ self.title() }}{% endblock %}</h1>
+    <div class="top-actions">{% block actions %}{% endblock %}</div>
+  </header>
+  <main class="content" id="content">
+    {%- with messages = get_flashed_messages(with_categories=true) %}
+      {%- for cat, msg in messages %}<div class="flash flash-{{ cat }}" role="status">{{ msg }}</div>{% endfor %}
+    {%- endwith %}
+    {% block content %}{% endblock %}
+  </main>
+</div>
+<dialog id="confirm-dialog" aria-labelledby="confirm-title">
+  <div class="dialog-head" id="confirm-title">Confirm</div>
+  <div class="dialog-body" id="confirm-text"></div>
+  <div class="dialog-foot">
+    <button type="button" class="btn" id="confirm-cancel">Cancel</button>
+    <button type="button" class="btn btn-primary" id="confirm-ok">Confirm</button>
+  </div>
+</dialog>
+<script src="{{ url_for('static', filename='app.js') }}"></script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

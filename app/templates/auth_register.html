@@ -1,32 +1,35 @@
 {% extends "base.html" %}
-{% block title %}{{ meta.title }} - Register{% endblock %}
+{% from "components/macros.html" import field_error with context %}
+{% block title %}Create account - {{ meta.long }}{% endblock %}
 {% block content %}
-<div class="auth-wrap">
-  <div class="auth-card card wide">
-    <div class="auth-icon">{{ meta.icon }}</div>
-    <h1>Register - {{ meta.title }}</h1>
-    {% if role == 'engineer' %}<p class="note">Engineer accounts must be approved by the Test In-charge before first login.</p>{% endif %}
-    {% if role == 'admin' %}<p class="note">Admin registration requires the invite code configured in <code>config.py</code>.</p>{% endif %}
-    <form method="post">
-      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-      <div class="grid2">
-        <label>Username <input name="username" value="{{ form.get('username','') }}" required pattern="[A-Za-z0-9_.\-]{3,32}"></label>
-        <label>Full name <input name="full_name" value="{{ form.get('full_name','') }}" required></label>
-        <label>Password (min 6) <input name="password" type="password" minlength="6" required></label>
-        <label>Repeat password <input name="password2" type="password" minlength="6" required></label>
-        <label>E-mail <input name="email" type="email" value="{{ form.get('email','') }}" required></label>
-        <label>Phone <input name="phone" value="{{ form.get('phone','') }}" required></label>
-        {% if role == 'customer' %}
-        <label>Company name <input name="company" value="{{ form.get('company','') }}" required></label>
-        <label class="span2">Company address <textarea name="address" rows="2" required>{{ form.get('address','') }}</textarea></label>
-        {% endif %}
-        {% if role == 'admin' %}
-        <label>Admin invite code <input name="invite_code" required></label>
-        {% endif %}
-      </div>
-      <button class="btn btn-primary btn-block" type="submit">Create account</button>
-    </form>
-    <p class="auth-alt">Already registered? <a href="{{ url_for(role ~ '.login') }}">Log in</a></p>
+<div class="auth wide">
+  <div class="panel">
+    <div class="panel-body">
+      <h1>Create account - {{ meta.long }}</h1>
+      {% if role == 'engineer' %}<p class="muted">Engineer accounts are activated by the Test In-charge.</p>
+      {% elif role == 'admin' %}<p class="muted">Test In-charge accounts are activated by the HOD.</p>{% endif %}
+      <form method="post" style="margin-top:16px" novalidate>
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="form-grid">
+          {% for name, label, typ, auto in [('username', 'Username', 'text', 'username'), ('full_name', 'Full name', 'text', 'name'),
+                                            ('password', 'Password (at least 8 characters)', 'password', 'new-password'),
+                                            ('password2', 'Repeat password', 'password', 'new-password'),
+                                            ('email', 'E-mail', 'email', 'email'), ('phone', 'Phone', 'text', 'tel')] %}
+          <label class="{{ 'field-error' if errors.get(name) }}">{{ label }}
+            <input name="{{ name }}" type="{{ typ }}" autocomplete="{{ auto }}" value="{{ form.get(name, '') if typ != 'password' }}" required>
+            {{ field_error(errors, name) }}</label>
+          {% endfor %}
+          {% if role == 'customer' %}
+          <label class="{{ 'field-error' if errors.get('company') }}">Company name <input name="company" value="{{ form.get('company', '') }}" required>{{ field_error(errors, 'company') }}</label>
+          <label class="full {{ 'field-error' if errors.get('address') }}">Company address <textarea name="address" rows="2" required>{{ form.get('address', '') }}</textarea>{{ field_error(errors, 'address') }}</label>
+          {% endif %}
+        </div>
+        <div class="form-actions" style="justify-content:space-between">
+          <a href="{{ url_for(role ~ '.login') }}">Back to sign in</a>
+          <button class="btn btn-primary" type="submit">Create account</button>
+        </div>
+      </form>
+    </div>
   </div>
 </div>
 {% endblock %}

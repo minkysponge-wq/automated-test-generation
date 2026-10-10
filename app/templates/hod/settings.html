@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}Settings{% endblock %}
+{% block content %}
+{% set cur = s %}
+<form method="post">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <div class="panel">
+    <div class="panel-head"><h2>Approvals</h2></div>
+    <div class="panel-body">
+      <p class="note">These actions always require your approval:</p>
+      <ul style="margin:0 0 12px 18px;padding:0">{% for spec in always %}<li>{{ spec.label }}</li>{% endfor %}</ul>
+      <p class="note">Optionally require your approval for:</p>
+      {% for spec in optional %}
+        <label class="choice" style="display:flex"><input type="checkbox" name="approval_{{ spec.type }}" value="1"
+          {% if cur.get('approval_' ~ spec.type) %}checked{% endif %}> {{ spec.label }}</label>
+      {% endfor %}
+    </div>
+  </div>
+  <div class="panel">
+    <div class="panel-head"><h2>Numbering, report text and rule limits</h2><span class="small muted">Changes made here apply immediately and are logged</span></div>
+    <div class="panel-body form-grid">
+      {% for key, default in defaults.items() if not key.startswith('approval_') %}
+        <label class="{{ 'full' if key.endswith('_text') }}">{{ key.replace('_', ' ')|capitalize }}
+          <input name="{{ key }}" value="{{ cur.get(key) }}" {% if default is number %}inputmode="decimal"{% endif %}></label>
+      {% endfor %}
+    </div>
+  </div>
+  <div class="form-actions"><button class="btn btn-primary">Save settings</button></div>
+</form>
+{% endblock %}

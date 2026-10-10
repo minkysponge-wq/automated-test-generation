@@ -1,0 +1,2525 @@
+{
+ "schema": 1,
+ "sheet_marker": "^TEST REPORT$",
+ "source_sheet_count": 11,
+ "slots": {
+  "t0r0c3p0s0": {
+   "kind": "field",
+   "key": "sys.report_no",
+   "confidence": 1.0,
+   "method": "fuzzy",
+   "fp": "v|test report||test report number|# date: xxxxxxxxx#0"
+  },
+  "t0r0c3p0s1": {
+   "kind": "field",
+   "key": "sys.report_date",
+   "confidence": 1.0,
+   "method": "fuzzy",
+   "fp": "v|test report||date|cpriblrscl25txxxx date: ##0"
+  },
+  "t0r2c3": {
+   "kind": "field",
+   "key": "rep.customer_block",
+   "confidence": 1.0,
+   "method": "fuzzy",
+   "fp": "v|test report||name and address of the customer|#0"
+  },
+  "t0r4c3": {
+   "kind": "field",
+   "key": "rep.manufacturer_block",
+   "confidence": 1.0,
+   "method": "fuzzy",
+   "fp": "v|test report||name and address of the manufacturer|#0"
+  },
+  "t0r6c3": {
+   "kind": "field",
+   "key": "rep.particulars",
+   "confidence": 1.0,
+   "method": "fuzzy",
+   "fp": "v|test report||particulars of sample tested|#0"
+  },
+  "t0r13c3": {
+   "kind": "field",
+   "key": "sys.test_dates",
+   "confidence": 1.0,
+   "method": "fuzzy",
+   "fp": "v|test report|refer sheet 2 of 11 / one|date(s) of test (s)|#0"
+  },
+  "t0r15c3": {
+   "kind": "field",
+   "key": "sys.sample_code",
+   "confidence": 1.0,
+   "method": "fuzzy",
+   "fp": "v|test report|refer sheet 2 of 11 / one|cpri sample code number (s)|#0"
+  },
+  "t0r27c3": {
+   "kind": "field",
+   "key": "witness_customer",
+   "confidence": 1.0,
+   "method": "fuzzy",
+   "fp": "v|test report|is 1180 (part 1): 2014 (with amendment no.4: march 2021) / not applicable / nil|customer's representative|#0"
+  },
+  "t0r43c0p0s0": {
+   "kind": "field",
+   "key": "sys.engineer_name",
+   "confidence": 1.0,
+   "method": "fuzzy",
+   "fp": "v|test report|number of photograph(s) / number of test circuit diagram(s) / number of drawing(|test engineer|##0"
+  },
+  "t0r43c4p0s0": {
+   "kind": "field",
+   "key": "sys.reviewer_name",
+   "confidence": 1.0,
+   "method": "fuzzy",
+   "fp": "v|test report|not applicable / nil / none|reviewed and authorized by|# reviewed and authorized by#0"
+  },
+  "t1r0c0p0s0": {
+   "kind": "field",
+   "key": "sys.report_no",
+   "confidence": 1.0,
+   "method": "fuzzy",
+   "fp": "v|test report||test report number|test report number: ##0"
+  },
+  "t1r0c1p0s0": {
+   "kind": "field",
+   "key": "sys.report_date",
+   "confidence": 1.0,
+   "method": "fuzzy",
+   "fp": "v|test report||date|date: ##0"
+  },
+  "t2r0c3": {
+   "kind": "field",
+   "key": "rep.sp.test_sample",
+   "confidence": 1.0,
+   "method": "fuzzy",
+   "fp": "v|(as assigned by the manufacturer)||test sample|#0"
+  },
+  "t2r1c3": {
+   "kind": "field",
+   "key": "rep.sp.type",
+   "confidence": 1.0,
+   "method": "fuzzy",
+   "fp": "v|(as assigned by the manufacturer)||type|#0"
+  },
+  "t2r2c3": {
+   "kind": "field",
+   "key": "rep.sp.serial",
+   "confidence": 1.0,
+   "method": "fuzzy",
+   "fp": "v|(as assigned by the manufacturer)||serial number|#0"
+  },
+  "t2r3c3": {
+   "kind": "field",
+   "key": "rep.sp.rated_power",
+   "confidence": 1.0,
+   "method": "fuzzy",
+   "fp": "v|(as assigned by the manufacturer)||rated power|#0"
+  },
+  "t2r4c3": {
+   "kind": "field",
+   "key": "rep.sp.rated_voltage",
+   "confidence": 1.0,
+   "method": "fuzzy",
+   "fp": "v|(as assigned by the manufacturer)||rated voltage - hv / lv|#0"
+  },
+  "t2r5c3": {
+   "kind": "field",
+   "key": "rep.sp.um",
+   "confidence": 1.0,
+   "method": "fuzzy",
+   "fp": "v|(as assigned by the manufacturer)||highest voltage of the equipment - um|#0"
+  },
+  "t2r7c3": {
+   "kind": "field",
+   "key": "rep.sp.hv_ins",
+   "confidence": 1.0,
+   "method": "fuzzy",
+   "fp": "v|(as assigned by the manufacturer)||hv li / ac|#0"
+  },
+  "t2r8c3": {
+   "kind": "field",
+   "key": "rep.sp.lv_ins",
+   "confidence": 1.0,
+   "method": "fuzzy",
+   "fp": "v|(as assigned by the manufacturer)||lv li / ac|#0"
+  },
+  "t2r9c3": {
+   "kind": "field",
+   "key": "rep.sp.impedance",
+   "confidence": 1.0,
+   "method": "fuzzy",
+   "fp": "v|(as assigned by the manufacturer)||impedance (percent)|#0"
+  },
+  "t2r10c3": {
+   "kind": "field",
+   "key": "rep.sp.phases",
+   "confidence": 1.0,
+   "method": "fuzzy",
+   "fp": "v|(as assigned by the manufacturer)||number of phases|#0"
+  },
+  "t2r11c3": {
+   "kind": "field",
+   "key": "rep.sp.freq",
+   "confidence": 1.0,
+   "method": "fuzzy",
+   "fp": "v|(as assigned by the manufacturer)||rated frequency|#0"
+  },
+  "t2r12c3": {
+   "kind": "field",
+   "key": "rep.sp.vector_group",
+   "confidence": 1.0,
+   "method": "fuzzy",
+   "fp": "v|(as assigned by the manufacturer)||vector group|#0"
+  },
+  "t2r13c3": {
+   "kind": "field",
+   "key": "rep.sp.tappings",
+   "confidence": 1.0,
+   "method": "fuzzy",
+   "fp": "v|(as assigned by the manufacturer)||tappings|#0"
+  },
+  "t2r14c3": {
+   "kind": "field",
+   "key": "rep.sp.eel",
+   "confidence": 1.0,
+   "method": "fuzzy",
+   "fp": "v|(as assigned by the manufacturer)||energy efficiency|#0"
+  },
+  "t2r15c3": {
+   "kind": "field",
+   "key": "rep.sp.cooling",
+   "confidence": 1.0,
+   "method": "fuzzy",
+   "fp": "v|(as assigned by the manufacturer)||type of cooling|#0"
+  },
+  "t2r16c3": {
+   "kind": "field",
+   "key": "rep.sp.max_tl50",
+   "confidence": 1.0,
+   "method": "fuzzy",
+   "fp": "v|(as assigned by the manufacturer)||maximum total loss at 50% load|#0"
+  },
+  "t2r17c3": {
+   "kind": "field",
+   "key": "rep.sp.max_tl100",
+   "confidence": 1.0,
+   "method": "fuzzy",
+   "fp": "v|(as assigned by the manufacturer)||maximum total loss at 100% load|#0"
+  },
+  "t2r18c3": {
+   "kind": "field",
+   "key": "rep.sp.coil",
+   "confidence": 1.0,
+   "method": "fuzzy",
+   "fp": "v|(as assigned by the manufacturer)||coil|#0"
+  },
+  "t2r19c3": {
+   "kind": "field",
+   "key": "rep.sp.core",
+   "confidence": 1.0,
+   "method": "fuzzy",
+   "fp": "v|(as assigned by the manufacturer)||core material|#0"
+  },
+  "t2r20c3": {
+   "kind": "field",
+   "key": "rep.sp.mfg",
+   "confidence": 1.0,
+   "method": "fuzzy",
+   "fp": "v|(as assigned by the manufacturer)||month & year of manufacture|#0"
+  },
+  "t2r21c3": {
+   "kind": "field",
+   "key": "rep.sp.oil",
+   "confidence": 1.0,
+   "method": "fuzzy",
+   "fp": "v|(as assigned by the manufacturer)||volume of oil|#0"
+  },
+  "t2r24c3": {
+   "kind": "field",
+   "key": "rep.sp.lv_winding",
+   "confidence": 1.0,
+   "method": "fuzzy",
+   "fp": "v|(as assigned by the manufacturer)||l.v. winding|#0"
+  },
+  "t2r25c3": {
+   "kind": "field",
+   "key": "rep.sp.hv_winding",
+   "confidence": 1.0,
+   "method": "fuzzy",
+   "fp": "v|(as assigned by the manufacturer)||h.v. winding|#0"
+  },
+  "t2r27c0p0s0": {
+   "kind": "field",
+   "key": "sys.engineer_name",
+   "confidence": 1.0,
+   "method": "fuzzy",
+   "fp": "v|(as assigned by the manufacturer)|winding details / l.v. winding / h.v. winding|test engineer|##0"
+  },
+  "t3r0c0p0s0": {
+   "kind": "field",
+   "key": "sys.report_no",
+   "confidence": 1.0,
+   "method": "fuzzy",
+   "fp": "v|test report||test report number|test report number: ##1"
+  },
+  "t3r0c1p0s0": {
+   "kind": "field",
+   "key": "sys.report_date",
+   "confidence": 1.0,
+   "method": "fuzzy",
+   "fp": "v|test report||date|date: ##1"
+  },
+  "t6r0c2": {
+   "kind": "field",
+   "key": "sys.osc_list",
+   "confidence": 1.0,
+   "method": "fuzzy",
+   "fp": "v|the clause numbers of the standard is 1180 (part 1): 2014 (w||4. oscillogram number(s)|#0"
+  },
+  "t6r2c2": {
+   "kind": "field",
+   "key": "sys.graph_list",
+   "confidence": 1.0,
+   "method": "fuzzy",
+   "fp": "v|the clause numbers of the standard is 1180 (part 1): 2014 (w||5. graph number(s)|#0"
+  },
+  "t6r4c2": {
+   "kind": "field",
+   "key": "sys.photo_list",
+   "confidence": 1.0,
+   "method": "fuzzy",
+   "fp": "v|the clause numbers of the standard is 1180 (part 1): 2014 (w||6. photograph number(s)|#0"
+  },
+  "t7r0c0p0s0": {
+   "kind": "field",
+   "key": "sys.report_no",
+   "confidence": 1.0,
+   "method": "fuzzy",
+   "fp": "v|test report||test report number|test report number: ##2"
+  },
+  "t7r0c1p0s0": {
+   "kind": "field",
+   "key": "sys.report_date",
+   "confidence": 1.0,
+   "method": "fuzzy",
+   "fp": "v|test report||date|date: ##2"
+  },
+  "t9r0c0p0s0": {
+   "kind": "field",
+   "key": "sys.engineer_name",
+   "confidence": 1.0,
+   "method": "fuzzy",
+   "fp": "v|xxxxxxxxx test engineer||test engineer|##0"
+  },
+  "t10r0c0p0s0": {
+   "kind": "field",
+   "key": "sys.report_no",
+   "confidence": 1.0,
+   "method": "fuzzy",
+   "fp": "v|test report||test report number|test report number: ##3"
+  },
+  "t10r0c1p0s0": {
+   "kind": "field",
+   "key": "sys.report_date",
+   "confidence": 1.0,
+   "method": "fuzzy",
+   "fp": "v|test report||date|date: ##3"
+  },
+  "t14r3c1": {
+   "kind": "field",
+   "key": "calc.nt.bt.z75",
+   "confidence": 1.0,
+   "method": "fuzzy",
+   "fp": "v|measurement of short circuit impedance and load loss at 50% |before scw test / principal (3)|% impedance at 75 °c|#0"
+  },
+  "t14r3c2": {
+   "kind": "field",
+   "key": "calc.ht.bt.z75",
+   "confidence": 1.0,
+   "method": "fuzzy",
+   "fp": "v|measurement of short circuit impedance and load loss at 50% |before scw test / highest (1)|% impedance at 75 °c|#0"
+  },
+  "t14r3c3": {
+   "kind": "field",
+   "key": "calc.lt.bt.z75",
+   "confidence": 1.0,
+   "method": "fuzzy",
+   "fp": "v|measurement of short circuit impedance and load loss at 50% |before scw test / lowest (7)|% impedance at 75 °c|#0"
+  },
+  "t14r3c4": {
+   "kind": "field",
+   "key": "calc.nt.at.z75",
+   "confidence": 1.0,
+   "method": "fuzzy",
+   "fp": "v|measurement of short circuit impedance and load loss at 50% |after scw test / principal (3)|% impedance at 75 °c|#0"
+  },
+  "t14r3c5": {
+   "kind": "field",
+   "key": "calc.ht.at.z75",
+   "confidence": 1.0,
+   "method": "fuzzy",
+   "fp": "v|measurement of short circuit impedance and load loss at 50% |after scw test / highest (1)|% impedance at 75 °c|#0"
+  },
+  "t14r3c6": {
+   "kind": "field",
+   "key": "calc.lt.at.z75",
+   "confidence": 1.0,
+   "method": "fuzzy",
+   "fp": "v|measurement of short circuit impedance and load loss at 50% |after scw test / lowest (7)|% impedance at 75 °c|#0"
+  },
+  "t14r4c1": {
+   "kind": "field",
+   "key": "calc.nt.bt.ll100",
+   "confidence": 1.0,
+   "method": "fuzzy",
+   "fp": "v|measurement of short circuit impedance and load loss at 50% |before scw test / principal (3)|load loss at 75 °c (w)|#0"
+  },
+  "t14r4c2": {
+   "kind": "field",
+   "key": "calc.ht.bt.ll100",
+   "confidence": 1.0,
+   "method": "fuzzy",
+   "fp": "v|measurement of short circuit impedance and load loss at 50% |before scw test / highest (1)|load loss at 75 °c (w)|#0"
+  },
+  "t14r4c3": {
+   "kind": "field",
+   "key": "calc.lt.bt.ll100",
+   "confidence": 1.0,
+   "method": "fuzzy",
+   "fp": "v|measurement of short circuit impedance and load loss at 50% |before scw test / lowest (7)|load loss at 75 °c (w)|#0"
+  },
+  "t14r4c4": {
+   "kind": "field",
+   "key": "calc.nt.at.ll100",
+   "confidence": 1.0,
+   "method": "fuzzy",
+   "fp": "v|measurement of short circuit impedance and load loss at 50% |after scw test / principal (3)|load loss at 75 °c (w)|#0"
+  },
+  "t14r4c5": {
+   "kind": "field",
+   "key": "calc.ht.at.ll100",
+   "confidence": 1.0,
+   "method": "fuzzy",
+   "fp": "v|measurement of short circuit impedance and load loss at 50% |after scw test / highest (1)|load loss at 75 °c (w)|#0"
+  },
+  "t14r4c6": {
+   "kind": "field",
+   "key": "calc.lt.at.ll100",
+   "confidence": 1.0,
+   "method": "fuzzy",
+   "fp": "v|measurement of short circuit impedance and load loss at 50% |after scw test / lowest (7)|load loss at 75 °c (w)|#0"
+  },
+  "t14r5c1": {
+   "kind": "field",
+   "key": "calc.nt.bt.ll50",
+   "confidence": 1.0,
+   "method": "fuzzy",
+   "fp": "v|measurement of short circuit impedance and load loss at 50% |before scw test / principal (3)|load loss at 50% of full load at 75 °c (w)|#0"
+  },
+  "t14r5c4": {
+   "kind": "field",
+   "key": "calc.nt.at.ll50",
+   "confidence": 1.0,
+   "method": "fuzzy",
+   "fp": "v|measurement of short circuit impedance and load loss at 50% |after scw test / principal (3)|load loss at 50% of full load at 75 °c (w)|#0"
+  },
+  "t15r1c1": {
+   "kind": "field",
+   "key": "nll.bt.v",
+   "confidence": 1.0,
+   "method": "fuzzy",
+   "fp": "v|measurement of no-load loss and current|voltage (v)|before scw test|#0"
+  },
+  "t15r1c2": {
+   "kind": "field",
+   "key": "nll.bt.f",
+   "confidence": 1.0,
+   "method": "fuzzy",
+   "fp": "v|measurement of no-load loss and current|frequency (hz)|before scw test|#0"
+  },
+  "t15r1c3": {
+   "kind": "field",
+   "key": "nll.bt.i",
+   "confidence": 1.0,
+   "method": "fuzzy",
+   "fp": "v|measurement of no-load loss and current|no-load current (a)|before scw test|#0"
+  },
+  "t15r1c4": {
+   "kind": "field",
+   "key": "nll.bt.p",
+   "confidence": 1.0,
+   "method": "fuzzy",
+   "fp": "v|measurement of no-load loss and current|no-load loss(w)|before scw test|#0"
+  },
+  "t15r2c1": {
+   "kind": "field",
+   "key": "nll.at.v",
+   "confidence": 1.0,
+   "method": "fuzzy",
+   "fp": "v|measurement of no-load loss and current|voltage (v)|after scw test|#0"
+  },
+  "t15r2c2": {
+   "kind": "field",
+   "key": "nll.at.f",
+   "confidence": 1.0,
+   "method": "fuzzy",
+   "fp": "v|measurement of no-load loss and current|frequency (hz)|after scw test|#0"
+  },
+  "t15r2c3": {
+   "kind": "field",
+   "key": "nll.at.i",
+   "confidence": 1.0,
+   "method": "fuzzy",
+   "fp": "v|measurement of no-load loss and current|no-load current (a)|after scw test|#0"
+  },
+  "t15r2c4": {
+   "kind": "field",
+   "key": "nll.at.p",
+   "confidence": 1.0,
+   "method": "fuzzy",
+   "fp": "v|measurement of no-load loss and current|no-load loss(w)|after scw test|#0"
+  },
+  "b84s0": {
+   "kind": "field",
+   "key": "sys.engineer_name",
+   "confidence": 1.0,
+   "method": "fuzzy",
+   "fp": "v|||test engineer|##0"
+  },
+  "t16r0c0p0s0": {
+   "kind": "field",
+   "key": "sys.report_no",
+   "confidence": 1.0,
+   "method": "fuzzy",
+   "fp": "v|test report||test report number|test report number: ##4"
+  },
+  "t16r0c1p0s0": {
+   "kind": "field",
+   "key": "sys.report_date",
+   "confidence": 1.0,
+   "method": "fuzzy",
+   "fp": "v|test report||date|date: ##4"
+  },
+  "t17r1c1": {
+   "kind": "field",
+   "key": "calc.nt.bt.tl50",
+   "confidence": 1.0,
+   "method": "fuzzy",
+   "fp": "v|check of energy efficiency level|before scw test|total loss at 50% load (w)|#0"
+  },
+  "t17r1c2": {
+   "kind": "field",
+   "key": "calc.nt.at.tl50",
+   "confidence": 1.0,
+   "method": "fuzzy",
+   "fp": "v|check of energy efficiency level|after scw test|total loss at 50% load (w)|#0"
+  },
+  "t17r2c1": {
+   "kind": "field",
+   "key": "calc.nt.bt.tl100",
+   "confidence": 1.0,
+   "method": "fuzzy",
+   "fp": "v|check of energy efficiency level|before scw test|total loss at 100% load (w)|#0"
+  },
+  "t17r2c2": {
+   "kind": "field",
+   "key": "calc.nt.at.tl100",
+   "confidence": 1.0,
+   "method": "fuzzy",
+   "fp": "v|check of energy efficiency level|after scw test|total loss at 100% load (w)|#0"
+  },
+  "t18r1c1": {
+   "kind": "field",
+   "key": "rep.ir.bt.hv_e",
+   "confidence": 1.0,
+   "method": "fuzzy",
+   "fp": "v|measurement of insulation resistance|before scw test|hv winding with respect to lv winding & tank connected together and earthed.|#0"
+  },
+  "t18r1c2": {
+   "kind": "field",
+   "key": "rep.ir.at.hv_e",
+   "confidence": 1.0,
+   "method": "fuzzy",
+   "fp": "v|measurement of insulation resistance|after scw test|hv winding with respect to lv winding & tank connected together and earthed.|#0"
+  },
+  "t18r2c1": {
+   "kind": "field",
+   "key": "rep.ir.bt.lv_e",
+   "confidence": 1.0,
+   "method": "fuzzy",
+   "fp": "v|measurement of insulation resistance|before scw test|lv winding with respect to hv winding & tank connected together and earthed.|#0"
+  },
+  "t18r2c2": {
+   "kind": "field",
+   "key": "rep.ir.at.lv_e",
+   "confidence": 1.0,
+   "method": "fuzzy",
+   "fp": "v|measurement of insulation resistance|after scw test|lv winding with respect to hv winding & tank connected together and earthed.|#0"
+  },
+  "t18r3c1": {
+   "kind": "field",
+   "key": "rep.ir.bt.hv_lv",
+   "confidence": 1.0,
+   "method": "fuzzy",
+   "fp": "v|measurement of insulation resistance|before scw test|hv winding with respect to lv winding with tank earthed.|#0"
+  },
+  "t18r3c2": {
+   "kind": "field",
+   "key": "rep.ir.at.hv_lv",
+   "confidence": 1.0,
+   "method": "fuzzy",
+   "fp": "v|measurement of insulation resistance|after scw test|hv winding with respect to lv winding with tank earthed.|#0"
+  },
+  "t19r1c1": {
+   "kind": "field",
+   "key": "rep.iov.bt",
+   "confidence": 1.0,
+   "method": "fuzzy",
+   "fp": "v|induced over-voltage withstand test|before scw test|lv winding by keeping hv winding open circuit|#0"
+  },
+  "t19r1c2": {
+   "kind": "field",
+   "key": "rep.iov.at",
+   "confidence": 1.0,
+   "method": "fuzzy",
+   "fp": "v|induced over-voltage withstand test|after scw test|lv winding by keeping hv winding open circuit|#0"
+  },
+  "t20r1c1": {
+   "kind": "field",
+   "key": "rep.sep.bt",
+   "confidence": 1.0,
+   "method": "fuzzy",
+   "fp": "v|separate source voltage withstand test|before scw test|a) hv winding and all terminals of lv winding & tank connected together to earth|#0"
+  },
+  "t20r1c2": {
+   "kind": "field",
+   "key": "rep.sep.at",
+   "confidence": 1.0,
+   "method": "fuzzy",
+   "fp": "v|separate source voltage withstand test|after scw test|a) hv winding and all terminals of lv winding & tank connected together to earth|#0"
+  },
+  "b115s0": {
+   "kind": "field",
+   "key": "sys.engineer_name",
+   "confidence": 1.0,
+   "method": "fuzzy",
+   "fp": "v|||test engineer|##1"
+  },
+  "t21r0c0p0s0": {
+   "kind": "field",
+   "key": "sys.report_no",
+   "confidence": 1.0,
+   "method": "fuzzy",
+   "fp": "v|test report||test report number|test report number: ##5"
+  },
+  "t21r0c1p0s0": {
+   "kind": "field",
+   "key": "sys.report_date",
+   "confidence": 1.0,
+   "method": "fuzzy",
+   "fp": "v|test report||date|date: ##5"
+  },
+  "t23r2c1": {
+   "kind": "field",
+   "key": "calc.nt.bt.xr",
+   "confidence": 1.0,
+   "method": "fuzzy",
+   "fp": "v|short-circuit current calculation|x/r at 75 °c|x (principal)|#0"
+  },
+  "t23r2c2": {
+   "kind": "field",
+   "key": "calc.nt.bt.iscrms",
+   "confidence": 1.0,
+   "method": "fuzzy",
+   "fp": "v|short-circuit current calculation|required short-circuit current on lv side (ka) / rms|x (principal)|#0"
+  },
+  "t23r2c3": {
+   "kind": "field",
+   "key": "calc.nt.bt.iscpk",
+   "confidence": 1.0,
+   "method": "fuzzy",
+   "fp": "v|short-circuit current calculation|required short-circuit current on lv side (ka) / peak|x (principal)|#0"
+  },
+  "t23r3c1": {
+   "kind": "field",
+   "key": "calc.ht.bt.xr",
+   "confidence": 1.0,
+   "method": "fuzzy",
+   "fp": "v|short-circuit current calculation|x/r at 75 °c|x (highest)|#0"
+  },
+  "t23r3c2": {
+   "kind": "field",
+   "key": "calc.ht.bt.iscrms",
+   "confidence": 1.0,
+   "method": "fuzzy",
+   "fp": "v|short-circuit current calculation|required short-circuit current on lv side (ka) / rms|x (highest)|#0"
+  },
+  "t23r3c3": {
+   "kind": "field",
+   "key": "calc.ht.bt.iscpk",
+   "confidence": 1.0,
+   "method": "fuzzy",
+   "fp": "v|short-circuit current calculation|required short-circuit current on lv side (ka) / peak|x (highest)|#0"
+  },
+  "t23r4c1": {
+   "kind": "field",
+   "key": "calc.lt.bt.xr",
+   "confidence": 1.0,
+   "method": "fuzzy",
+   "fp": "v|short-circuit current calculation|x/r at 75 °c|x (lowest)|#0"
+  },
+  "t23r4c2": {
+   "kind": "field",
+   "key": "calc.lt.bt.iscrms",
+   "confidence": 1.0,
+   "method": "fuzzy",
+   "fp": "v|short-circuit current calculation|required short-circuit current on lv side (ka) / rms|x (lowest)|#0"
+  },
+  "t23r4c3": {
+   "kind": "field",
+   "key": "calc.lt.bt.iscpk",
+   "confidence": 1.0,
+   "method": "fuzzy",
+   "fp": "v|short-circuit current calculation|required short-circuit current on lv side (ka) / peak|x (lowest)|#0"
+  },
+  "t24r3c1": {
+   "kind": "field",
+   "key": "sc.s002.pk",
+   "confidence": 1.0,
+   "method": "fuzzy",
+   "fp": "v|ability to withstand the dynamic effects of short-circuit [s|current peak (ka)|s002|#0"
+  },
+  "t24r3c2": {
+   "kind": "field",
+   "key": "sc.s002.rms_avg",
+   "confidence": 1.0,
+   "method": "fuzzy",
+   "fp": "v|ability to withstand the dynamic effects of short-circuit [s|current rms (ka) (average)|s002|#0"
+  },
+  "t24r3c3": {
+   "kind": "field",
+   "key": "sc.s002.dur",
+   "confidence": 1.0,
+   "method": "fuzzy",
+   "fp": "v|ability to withstand the dynamic effects of short-circuit [s|duration (s)|s002|#0"
+  },
+  "t24r3c4": {
+   "kind": "field",
+   "key": "rep.osc.s002.obs",
+   "confidence": 1.0,
+   "method": "fuzzy",
+   "fp": "v|ability to withstand the dynamic effects of short-circuit [s|observation|s002|#0"
+  },
+  "t24r4c1": {
+   "kind": "field",
+   "key": "sc.s003.pk",
+   "confidence": 1.0,
+   "method": "fuzzy",
+   "fp": "v|ability to withstand the dynamic effects of short-circuit [s|current peak (ka)|s003|#0"
+  },
+  "t24r4c2": {
+   "kind": "field",
+   "key": "sc.s003.rms_avg",
+   "confidence": 1.0,
+   "method": "fuzzy",
+   "fp": "v|ability to withstand the dynamic effects of short-circuit [s|current rms (ka) (average)|s003|#0"
+  },
+  "t24r4c3": {
+   "kind": "field",
+   "key": "sc.s003.dur",
+   "confidence": 1.0,
+   "method": "fuzzy",
+   "fp": "v|ability to withstand the dynamic effects of short-circuit [s|duration (s)|s003|#0"
+  },
+  "t24r4c4": {
+   "kind": "field",
+   "key": "rep.osc.s003.obs",
+   "confidence": 1.0,
+   "method": "fuzzy",
+   "fp": "v|ability to withstand the dynamic effects of short-circuit [s|observation|s003|#0"
+  },
+  "t24r5c1": {
+   "kind": "field",
+   "key": "sc.s004.pk",
+   "confidence": 1.0,
+   "method": "fuzzy",
+   "fp": "v|ability to withstand the dynamic effects of short-circuit [s|current peak (ka)|s004|#0"
+  },
+  "t24r5c2": {
+   "kind": "field",
+   "key": "sc.s004.rms_avg",
+   "confidence": 1.0,
+   "method": "fuzzy",
+   "fp": "v|ability to withstand the dynamic effects of short-circuit [s|current rms (ka) (average)|s004|#0"
+  },
+  "t24r5c3": {
+   "kind": "field",
+   "key": "sc.s004.dur",
+   "confidence": 1.0,
+   "method": "fuzzy",
+   "fp": "v|ability to withstand the dynamic effects of short-circuit [s|duration (s)|s004|#0"
+  },
+  "t24r5c4": {
+   "kind": "field",
+   "key": "rep.osc.s004.obs",
+   "confidence": 1.0,
+   "method": "fuzzy",
+   "fp": "v|ability to withstand the dynamic effects of short-circuit [s|observation|s004|#0"
+  },
+  "t24r7c1": {
+   "kind": "field",
+   "key": "sc.s005.pk",
+   "confidence": 1.0,
+   "method": "fuzzy",
+   "fp": "v|ability to withstand the dynamic effects of short-circuit [s|current peak (ka)|s005|#0"
+  },
+  "t24r7c2": {
+   "kind": "field",
+   "key": "sc.s005.rms_avg",
+   "confidence": 1.0,
+   "method": "fuzzy",
+   "fp": "v|ability to withstand the dynamic effects of short-circuit [s|current rms (ka) (average)|s005|#0"
+  },
+  "t24r7c3": {
+   "kind": "field",
+   "key": "sc.s005.dur",
+   "confidence": 1.0,
+   "method": "fuzzy",
+   "fp": "v|ability to withstand the dynamic effects of short-circuit [s|duration (s)|s005|#0"
+  },
+  "t24r7c4": {
+   "kind": "field",
+   "key": "rep.osc.s005.obs",
+   "confidence": 1.0,
+   "method": "fuzzy",
+   "fp": "v|ability to withstand the dynamic effects of short-circuit [s|observation|s005|#0"
+  },
+  "t24r8c1": {
+   "kind": "field",
+   "key": "sc.s006.pk",
+   "confidence": 1.0,
+   "method": "fuzzy",
+   "fp": "v|ability to withstand the dynamic effects of short-circuit [s|current peak (ka)|s006|#0"
+  },
+  "t24r8c2": {
+   "kind": "field",
+   "key": "sc.s006.rms_avg",
+   "confidence": 1.0,
+   "method": "fuzzy",
+   "fp": "v|ability to withstand the dynamic effects of short-circuit [s|current rms (ka) (average)|s006|#0"
+  },
+  "t24r8c3": {
+   "kind": "field",
+   "key": "sc.s006.dur",
+   "confidence": 1.0,
+   "method": "fuzzy",
+   "fp": "v|ability to withstand the dynamic effects of short-circuit [s|duration (s)|s006|#0"
+  },
+  "t24r8c4": {
+   "kind": "field",
+   "key": "rep.osc.s006.obs",
+   "confidence": 1.0,
+   "method": "fuzzy",
+   "fp": "v|ability to withstand the dynamic effects of short-circuit [s|observation|s006|#0"
+  },
+  "t24r9c1": {
+   "kind": "field",
+   "key": "sc.s007.pk",
+   "confidence": 1.0,
+   "method": "fuzzy",
+   "fp": "v|ability to withstand the dynamic effects of short-circuit [s|current peak (ka)|s007|#0"
+  },
+  "t24r9c2": {
+   "kind": "field",
+   "key": "sc.s007.rms_avg",
+   "confidence": 1.0,
+   "method": "fuzzy",
+   "fp": "v|ability to withstand the dynamic effects of short-circuit [s|current rms (ka) (average)|s007|#0"
+  },
+  "t24r9c3": {
+   "kind": "field",
+   "key": "sc.s007.dur",
+   "confidence": 1.0,
+   "method": "fuzzy",
+   "fp": "v|ability to withstand the dynamic effects of short-circuit [s|duration (s)|s007|#0"
+  },
+  "t24r9c4": {
+   "kind": "field",
+   "key": "rep.osc.s007.obs",
+   "confidence": 1.0,
+   "method": "fuzzy",
+   "fp": "v|ability to withstand the dynamic effects of short-circuit [s|observation|s007|#0"
+  },
+  "t24r11c1": {
+   "kind": "field",
+   "key": "sc.s008.pk",
+   "confidence": 1.0,
+   "method": "fuzzy",
+   "fp": "v|ability to withstand the dynamic effects of short-circuit [s|current peak (ka)|s008|#0"
+  },
+  "t24r11c2": {
+   "kind": "field",
+   "key": "sc.s008.rms_avg",
+   "confidence": 1.0,
+   "method": "fuzzy",
+   "fp": "v|ability to withstand the dynamic effects of short-circuit [s|current rms (ka) (average)|s008|#0"
+  },
+  "t24r11c3": {
+   "kind": "field",
+   "key": "sc.s008.dur",
+   "confidence": 1.0,
+   "method": "fuzzy",
+   "fp": "v|ability to withstand the dynamic effects of short-circuit [s|duration (s)|s008|#0"
+  },
+  "t24r11c4": {
+   "kind": "field",
+   "key": "rep.osc.s008.obs",
+   "confidence": 1.0,
+   "method": "fuzzy",
+   "fp": "v|ability to withstand the dynamic effects of short-circuit [s|observation|s008|#0"
+  },
+  "t24r12c1": {
+   "kind": "field",
+   "key": "sc.s009.pk",
+   "confidence": 1.0,
+   "method": "fuzzy",
+   "fp": "v|ability to withstand the dynamic effects of short-circuit [s|current peak (ka)|s009|#0"
+  },
+  "t24r12c2": {
+   "kind": "field",
+   "key": "sc.s009.rms_avg",
+   "confidence": 1.0,
+   "method": "fuzzy",
+   "fp": "v|ability to withstand the dynamic effects of short-circuit [s|current rms (ka) (average)|s009|#0"
+  },
+  "t24r12c3": {
+   "kind": "field",
+   "key": "sc.s009.dur",
+   "confidence": 1.0,
+   "method": "fuzzy",
+   "fp": "v|ability to withstand the dynamic effects of short-circuit [s|duration (s)|s009|#0"
+  },
+  "t24r12c4": {
+   "kind": "field",
+   "key": "rep.osc.s009.obs",
+   "confidence": 1.0,
+   "method": "fuzzy",
+   "fp": "v|ability to withstand the dynamic effects of short-circuit [s|observation|s009|#0"
+  },
+  "t24r13c1": {
+   "kind": "field",
+   "key": "sc.s010.pk",
+   "confidence": 1.0,
+   "method": "fuzzy",
+   "fp": "v|ability to withstand the dynamic effects of short-circuit [s|current peak (ka)|s010|#0"
+  },
+  "t24r13c2": {
+   "kind": "field",
+   "key": "sc.s010.rms_avg",
+   "confidence": 1.0,
+   "method": "fuzzy",
+   "fp": "v|ability to withstand the dynamic effects of short-circuit [s|current rms (ka) (average)|s010|#0"
+  },
+  "t24r13c3": {
+   "kind": "field",
+   "key": "sc.s010.dur",
+   "confidence": 1.0,
+   "method": "fuzzy",
+   "fp": "v|ability to withstand the dynamic effects of short-circuit [s|duration (s)|s010|#0"
+  },
+  "t24r13c4": {
+   "kind": "field",
+   "key": "rep.osc.s010.obs",
+   "confidence": 1.0,
+   "method": "fuzzy",
+   "fp": "v|ability to withstand the dynamic effects of short-circuit [s|observation|s010|#0"
+  },
+  "t24r15c2": {
+   "kind": "field",
+   "key": "sc.s011.rms_avg",
+   "confidence": 1.0,
+   "method": "fuzzy",
+   "fp": "v|ability to withstand the dynamic effects of short-circuit [s|current rms (ka) (average)|s011|#0"
+  },
+  "t24r15c3": {
+   "kind": "field",
+   "key": "sc.s011.dur",
+   "confidence": 1.0,
+   "method": "fuzzy",
+   "fp": "v|ability to withstand the dynamic effects of short-circuit [s|duration (s)|s011|#0"
+  },
+  "t24r15c4": {
+   "kind": "field",
+   "key": "rep.osc.s011.obs",
+   "confidence": 1.0,
+   "method": "fuzzy",
+   "fp": "v|ability to withstand the dynamic effects of short-circuit [s|observation|s011|#0"
+  },
+  "b136s0": {
+   "kind": "field",
+   "key": "sys.engineer_name",
+   "confidence": 1.0,
+   "method": "fuzzy",
+   "fp": "v|||test engineer|##2"
+  },
+  "t25r0c0p0s0": {
+   "kind": "field",
+   "key": "sys.report_no",
+   "confidence": 1.0,
+   "method": "fuzzy",
+   "fp": "v|test report||test report number|test report number: ##6"
+  },
+  "t25r0c3p0s0": {
+   "kind": "field",
+   "key": "sys.report_date",
+   "confidence": 1.0,
+   "method": "fuzzy",
+   "fp": "v|test report||date|date: ##6"
+  },
+  "t25r3c2": {
+   "kind": "field",
+   "key": "calc.nt.bt.x50",
+   "confidence": 1.0,
+   "method": "fuzzy",
+   "fp": "v|test report|% x before scw test|principal (x)|#0"
+  },
+  "t25r3c3": {
+   "kind": "field",
+   "key": "calc.nt.at.x50",
+   "confidence": 1.0,
+   "method": "fuzzy",
+   "fp": "v|test report|% x after scw test|principal (x)|#0"
+  },
+  "t25r3c5": {
+   "kind": "field",
+   "key": "calc.xchg.nt",
+   "confidence": 1.0,
+   "method": "fuzzy",
+   "fp": "v|test report|% change in x|principal (x)|#0"
+  },
+  "t25r4c2": {
+   "kind": "field",
+   "key": "calc.ht.bt.x50",
+   "confidence": 1.0,
+   "method": "fuzzy",
+   "fp": "v|test report|% x before scw test|highest (x)|#0"
+  },
+  "t25r4c3": {
+   "kind": "field",
+   "key": "calc.ht.at.x50",
+   "confidence": 1.0,
+   "method": "fuzzy",
+   "fp": "v|test report|% x after scw test|highest (x)|#0"
+  },
+  "t25r4c5": {
+   "kind": "field",
+   "key": "calc.xchg.ht",
+   "confidence": 1.0,
+   "method": "fuzzy",
+   "fp": "v|test report|% change in x|highest (x)|#0"
+  },
+  "t25r5c2": {
+   "kind": "field",
+   "key": "calc.lt.bt.x50",
+   "confidence": 1.0,
+   "method": "fuzzy",
+   "fp": "v|test report|% x before scw test|lowest (x)|#0"
+  },
+  "t25r5c3": {
+   "kind": "field",
+   "key": "calc.lt.at.x50",
+   "confidence": 1.0,
+   "method": "fuzzy",
+   "fp": "v|test report|% x after scw test|lowest (x)|#0"
+  },
+  "t25r5c5": {
+   "kind": "field",
+   "key": "calc.xchg.lt",
+   "confidence": 1.0,
+   "method": "fuzzy",
+   "fp": "v|test report|% change in x|lowest (x)|#0"
+  },
+  "t27r1c0": {
+   "kind": "field",
+   "key": "ol.head_kpa",
+   "confidence": 1.0,
+   "method": "fuzzy",
+   "fp": "v|oil leakage test|head pressure calculated at base of the tank kpa (g)||#0"
+  },
+  "t27r1c1": {
+   "kind": "field",
+   "key": "ol.test_kpa",
+   "confidence": 1.0,
+   "method": "fuzzy",
+   "fp": "v|oil leakage test|test pressure at base of tank kpa (g)||#0"
+  },
+  "t27r1c2": {
+   "kind": "field",
+   "key": "ol.hours",
+   "confidence": 1.0,
+   "method": "fuzzy",
+   "fp": "v|oil leakage test|test duration (hours)||#0"
+  },
+  "t27r1c3": {
+   "kind": "field",
+   "key": "rep.ol.obs",
+   "confidence": 1.0,
+   "method": "fuzzy",
+   "fp": "v|oil leakage test|observations||#0"
+  },
+  "b172s0": {
+   "kind": "field",
+   "key": "sys.engineer_name",
+   "confidence": 1.0,
+   "method": "fuzzy",
+   "fp": "v|||test engineer|##3"
+  },
+  "t29r0c0p0s0": {
+   "kind": "field",
+   "key": "sys.report_no",
+   "confidence": 1.0,
+   "method": "fuzzy",
+   "fp": "v|test report||test report number|test report number: ##7"
+  },
+  "t29r0c1p0s0": {
+   "kind": "field",
+   "key": "sys.report_date",
+   "confidence": 1.0,
+   "method": "fuzzy",
+   "fp": "v|test report||date|date: ##7"
+  },
+  "t30r0c1": {
+   "kind": "field",
+   "key": "tr.nll",
+   "confidence": 1.0,
+   "method": "fuzzy",
+   "fp": "v|measured losses||no load loss at rated voltage and at rated frequency (w)|#0"
+  },
+  "t30r1c1": {
+   "kind": "field",
+   "key": "tr.fll",
+   "confidence": 1.0,
+   "method": "fuzzy",
+   "fp": "v|measured losses||load loss at rated current at 75 c at lowest tap (w)|#0"
+  },
+  "b202n0": {
+   "kind": "field",
+   "key": "tr.total_loss",
+   "confidence": 1.0,
+   "method": "fuzzy",
+   "fp": "inline_number|||step 1 - total loss ( w) is injected until a steady state of oil temperature ris|step 1 - total loss (2623.20 w) is injected until a steady state of oil temperat#0"
+  },
+  "t31r1c4": {
+   "kind": "field",
+   "key": "rep.tr.top.obs",
+   "confidence": 1.0,
+   "method": "fuzzy",
+   "fp": "v|ambient temperature: 22.9 °c|observations|top oil|#0"
+  },
+  "t31r2c4": {
+   "kind": "field",
+   "key": "rep.tr.hv.obs",
+   "confidence": 1.0,
+   "method": "fuzzy",
+   "fp": "v|ambient temperature: 22.9 °c|observations|hv winding|#0"
+  },
+  "t31r3c4": {
+   "kind": "field",
+   "key": "rep.tr.lv.obs",
+   "confidence": 1.0,
+   "method": "fuzzy",
+   "fp": "v|ambient temperature: 22.9 °c|observations|lv winding|#0"
+  },
+  "b213s0": {
+   "kind": "field",
+   "key": "sys.engineer_name",
+   "confidence": 1.0,
+   "method": "fuzzy",
+   "fp": "v|||test engineer|##4"
+  },
+  "t32r0c0p0s0": {
+   "kind": "field",
+   "key": "sys.report_no",
+   "confidence": 1.0,
+   "method": "fuzzy",
+   "fp": "v|test report||test report number|test report number: ##8"
+  },
+  "t32r0c1p0s0": {
+   "kind": "field",
+   "key": "sys.report_date",
+   "confidence": 1.0,
+   "method": "fuzzy",
+   "fp": "v|test report||date|date: ##8"
+  },
+  "t33r1c2": {
+   "kind": "field",
+   "key": "prt.perm_defl",
+   "confidence": 1.0,
+   "method": "fuzzy",
+   "fp": "v|air pressure test:|permanent deflection of flat plate after release of air pressure (mm)||#0"
+  },
+  "t34r1c0": {
+   "kind": "field",
+   "key": "prv.mmhg",
+   "confidence": 1.0,
+   "method": "fuzzy",
+   "fp": "v|vacuum test:|vacuum in level of mm of mercury||#0"
+  },
+  "t34r1c2": {
+   "kind": "field",
+   "key": "prv.perm_defl",
+   "confidence": 1.0,
+   "method": "fuzzy",
+   "fp": "v|vacuum test:|permanent deflection of flat plate after release of vacuum (mm)||#0"
+  },
+  "b255s0": {
+   "kind": "field",
+   "key": "sys.engineer_name",
+   "confidence": 1.0,
+   "method": "fuzzy",
+   "fp": "v|||test engineer|##5"
+  },
+  "t37r0c0p0s0": {
+   "kind": "field",
+   "key": "sys.report_no",
+   "confidence": 1.0,
+   "method": "fuzzy",
+   "fp": "v|test report||test report number|test report number: ##9"
+  },
+  "t37r0c1p0s0": {
+   "kind": "field",
+   "key": "sys.report_date",
+   "confidence": 1.0,
+   "method": "fuzzy",
+   "fp": "v|test report||date|date: ##9"
+  },
+  "b203n0": {
+   "kind": "field",
+   "key": "tr.rated_current",
+   "confidence": 0.99,
+   "method": "fuzzy",
+   "fp": "inline_number|||step 2 - the rated current ( a) is injected for one hour, immediately after step|step 2 - the rated current (14.58 a) is injected for one hour, immediately after#0"
+  },
+  "t11r5c1": {
+   "kind": "field",
+   "key": "calc.r75.lv.bt",
+   "confidence": 0.99,
+   "method": "fuzzy",
+   "fp": "v|routine tests|before scw test / principal (x)|lv winding resistance at 75 °c (m) -average|#0"
+  },
+  "t11r5c4": {
+   "kind": "field",
+   "key": "calc.r75.lv.at",
+   "confidence": 0.99,
+   "method": "fuzzy",
+   "fp": "v|routine tests|after scw test / principal (x)|lv winding resistance at 75 °c (m) -average|#0"
+  },
+  "t33r1c3": {
+   "kind": "field",
+   "key": "rep.prt.obs",
+   "confidence": 0.98,
+   "method": "fuzzy",
+   "fp": "v|air pressure test:|observations||#0"
+  },
+  "t34r1c1": {
+   "kind": "field",
+   "key": "prv.min",
+   "confidence": 0.98,
+   "method": "fuzzy",
+   "fp": "v|vacuum test:|duration (minutes)||#0"
+  },
+  "t31r1c2": {
+   "kind": "field",
+   "key": "rep.tr.top.g",
+   "confidence": 0.98,
+   "method": "fuzzy",
+   "fp": "v|ambient temperature: 22.9 °c|guaranteed limit declared by the manufacturer (c)|top oil|#0"
+  },
+  "t31r2c2": {
+   "kind": "field",
+   "key": "rep.tr.hv.g",
+   "confidence": 0.98,
+   "method": "fuzzy",
+   "fp": "v|ambient temperature: 22.9 °c|guaranteed limit declared by the manufacturer (c)|hv winding|#0"
+  },
+  "t31r3c2": {
+   "kind": "field",
+   "key": "rep.tr.lv.g",
+   "confidence": 0.98,
+   "method": "fuzzy",
+   "fp": "v|ambient temperature: 22.9 °c|guaranteed limit declared by the manufacturer (c)|lv winding|#0"
+  },
+  "t34r1c3": {
+   "kind": "field",
+   "key": "rep.prv.obs",
+   "confidence": 0.98,
+   "method": "fuzzy",
+   "fp": "v|vacuum test:|observations||#0"
+  },
+  "b148c": {
+   "kind": "field",
+   "key": "sc.insp.conductor",
+   "method": "review",
+   "confidence": 1.0,
+   "fp": "after_colon|||conductor, core & clamping|conductor, core & clamping:#0"
+  },
+  "b149c": {
+   "kind": "field",
+   "key": "sc.insp.spacers",
+   "method": "review",
+   "confidence": 1.0,
+   "fp": "after_colon|||spacers / support blocks|spacers / support blocks:#0"
+  },
+  "b150c": {
+   "kind": "field",
+   "key": "sc.insp.oil",
+   "method": "review",
+   "confidence": 1.0,
+   "fp": "after_colon|||oil|oil:#0"
+  },
+  "t11r4c1": {
+   "kind": "field",
+   "key": "calc.r75.hv.bt.n",
+   "confidence": 0.97,
+   "method": "fuzzy",
+   "fp": "v|routine tests|before scw test / principal (x)|hv winding resistance at 75 °c () -average|#0"
+  },
+  "t11r4c2": {
+   "kind": "field",
+   "key": "calc.r75.hv.bt.h",
+   "confidence": 0.97,
+   "method": "fuzzy",
+   "fp": "v|routine tests|before scw test / highest (x)|hv winding resistance at 75 °c () -average|#0"
+  },
+  "t11r4c3": {
+   "kind": "field",
+   "key": "calc.r75.hv.bt.l",
+   "confidence": 0.97,
+   "method": "fuzzy",
+   "fp": "v|routine tests|before scw test / lowest (x)|hv winding resistance at 75 °c () -average|#0"
+  },
+  "t11r4c4": {
+   "kind": "field",
+   "key": "calc.r75.hv.at.n",
+   "confidence": 0.97,
+   "method": "fuzzy",
+   "fp": "v|routine tests|after scw test / principal (x)|hv winding resistance at 75 °c () -average|#0"
+  },
+  "t11r4c5": {
+   "kind": "field",
+   "key": "calc.r75.hv.at.h",
+   "confidence": 0.97,
+   "method": "fuzzy",
+   "fp": "v|routine tests|after scw test / highest (x)|hv winding resistance at 75 °c () -average|#0"
+  },
+  "t11r4c6": {
+   "kind": "field",
+   "key": "calc.r75.hv.at.l",
+   "confidence": 0.97,
+   "method": "fuzzy",
+   "fp": "v|routine tests|after scw test / lowest (x)|hv winding resistance at 75 °c () -average|#0"
+  },
+  "t31r1c3": {
+   "kind": "field",
+   "key": "rep.tr.top.std",
+   "confidence": 0.97,
+   "method": "fuzzy",
+   "fp": "v|ambient temperature: 22.9 °c|limit as per the standard (c)|top oil|#0"
+  },
+  "t31r2c3": {
+   "kind": "field",
+   "key": "rep.tr.hv.std",
+   "confidence": 0.97,
+   "method": "fuzzy",
+   "fp": "v|ambient temperature: 22.9 °c|limit as per the standard (c)|hv winding|#0"
+  },
+  "t31r3c3": {
+   "kind": "field",
+   "key": "rep.tr.lv.std",
+   "confidence": 0.97,
+   "method": "fuzzy",
+   "fp": "v|ambient temperature: 22.9 °c|limit as per the standard (c)|lv winding|#0"
+  },
+  "t36r1c2p0s0": {
+   "kind": "field",
+   "key": "rep.nlc.v112",
+   "confidence": 0.97,
+   "method": "fuzzy",
+   "fp": "v|average no-load current (percentage of rated full load curre||at 112.5 percent rated voltage (|at 112.5 percent rated voltage (# v)#0"
+  },
+  "t36r1c0p0s0": {
+   "kind": "field",
+   "key": "rep.nlc.v100",
+   "confidence": 0.97,
+   "method": "fuzzy",
+   "fp": "v|average no-load current (percentage of rated full load curre||at 100 percent rated voltage (|at 100 percent rated voltage ( # v)#0"
+  },
+  "t0r33c3": {
+   "kind": "field",
+   "key": "sys.n_sheets_words",
+   "confidence": 0.96,
+   "method": "fuzzy",
+   "fp": "v|test report|not applicable / nil / none|number of sheet(s)|#0"
+  },
+  "t0r34c3": {
+   "kind": "field",
+   "key": "sys.n_osc_words",
+   "confidence": 0.96,
+   "method": "fuzzy",
+   "fp": "v|test report|not applicable / nil / none|number of oscillogram (s)|#0"
+  },
+  "t0r35c3": {
+   "kind": "field",
+   "key": "sys.n_graph_words",
+   "confidence": 0.96,
+   "method": "fuzzy",
+   "fp": "v|test report|not applicable / nil / none|number of graph (s)|#0"
+  },
+  "t0r36c3": {
+   "kind": "field",
+   "key": "sys.n_photo_words",
+   "confidence": 0.96,
+   "method": "fuzzy",
+   "fp": "v|test report|not applicable / nil / none|number of photograph(s)|#0"
+  },
+  "t0r37c3": {
+   "kind": "field",
+   "key": "sys.n_circuit_words",
+   "confidence": 0.96,
+   "method": "fuzzy",
+   "fp": "v|test report|not applicable / nil / none|number of test circuit diagram(s)|#0"
+  },
+  "t0r38c3": {
+   "kind": "field",
+   "key": "sys.n_drawing_words",
+   "confidence": 0.96,
+   "method": "fuzzy",
+   "fp": "v|test report|not applicable / nil / none|number of drawing(s)|#0"
+  },
+  "t31r1c1": {
+   "kind": "field",
+   "key": "calc.tr.top",
+   "confidence": 0.95,
+   "method": "fuzzy",
+   "fp": "v|ambient temperature: 22.9 °c|temperature-rise (c)|top oil|#0"
+  },
+  "t31r2c1": {
+   "kind": "field",
+   "key": "calc.tr.hv",
+   "confidence": 0.95,
+   "method": "fuzzy",
+   "fp": "v|ambient temperature: 22.9 °c|temperature-rise (c)|hv winding|#0"
+  },
+  "t31r3c1": {
+   "kind": "field",
+   "key": "calc.tr.lv",
+   "confidence": 0.95,
+   "method": "fuzzy",
+   "fp": "v|ambient temperature: 22.9 °c|temperature-rise (c)|lv winding|#0"
+  },
+  "t33r1c0": {
+   "kind": "field",
+   "key": "prt.kpa",
+   "method": "review",
+   "confidence": 1.0,
+   "fp": "v|air pressure test:|air pressure above atmospheric pressure (kpa)||#0"
+  },
+  "b232n0": {
+   "kind": "field",
+   "key": "pr.amb",
+   "method": "review",
+   "confidence": 1.0,
+   "fp": "inline_number|||ambient temperature c|ambient temperature 25.0 c#0"
+  },
+  "t33r1c1": {
+   "kind": "field",
+   "key": "prt.min",
+   "confidence": 0.91,
+   "method": "fuzzy",
+   "fp": "v|air pressure test:|duration (minutes)||#0"
+  },
+  "t24r3c0p0s0": {
+   "kind": "field",
+   "key": "sys.base_no",
+   "confidence": 0.9,
+   "method": "fuzzy",
+   "fp": "v|ability to withstand the dynamic effects of short-circuit [s|oscillogram number|s002|#s002#0"
+  },
+  "t24r4c0p0s0": {
+   "kind": "field",
+   "key": "sys.base_no",
+   "confidence": 0.9,
+   "method": "fuzzy",
+   "fp": "v|ability to withstand the dynamic effects of short-circuit [s|oscillogram number|s003|#s003#0"
+  },
+  "t24r5c0p0s0": {
+   "kind": "field",
+   "key": "sys.base_no",
+   "confidence": 0.9,
+   "method": "fuzzy",
+   "fp": "v|ability to withstand the dynamic effects of short-circuit [s|oscillogram number|s004|#s004#0"
+  },
+  "t24r7c0p0s0": {
+   "kind": "field",
+   "key": "sys.base_no",
+   "confidence": 0.9,
+   "method": "fuzzy",
+   "fp": "v|ability to withstand the dynamic effects of short-circuit [s|oscillogram number|s005|#s005#0"
+  },
+  "t24r8c0p0s0": {
+   "kind": "field",
+   "key": "sys.base_no",
+   "confidence": 0.9,
+   "method": "fuzzy",
+   "fp": "v|ability to withstand the dynamic effects of short-circuit [s|oscillogram number|s006|#s006#0"
+  },
+  "t24r9c0p0s0": {
+   "kind": "field",
+   "key": "sys.base_no",
+   "confidence": 0.9,
+   "method": "fuzzy",
+   "fp": "v|ability to withstand the dynamic effects of short-circuit [s|oscillogram number|s007|#s007#0"
+  },
+  "t24r11c0p0s0": {
+   "kind": "field",
+   "key": "sys.base_no",
+   "confidence": 0.9,
+   "method": "fuzzy",
+   "fp": "v|ability to withstand the dynamic effects of short-circuit [s|oscillogram number|s008|#s008#0"
+  },
+  "t24r12c0p0s0": {
+   "kind": "field",
+   "key": "sys.base_no",
+   "confidence": 0.9,
+   "method": "fuzzy",
+   "fp": "v|ability to withstand the dynamic effects of short-circuit [s|oscillogram number|s009|#s009#0"
+  },
+  "t24r13c0p0s0": {
+   "kind": "field",
+   "key": "sys.base_no",
+   "confidence": 0.9,
+   "method": "fuzzy",
+   "fp": "v|ability to withstand the dynamic effects of short-circuit [s|oscillogram number|s010|#s010#0"
+  },
+  "t24r15c0p0s0": {
+   "kind": "field",
+   "key": "sys.base_no",
+   "confidence": 0.9,
+   "method": "fuzzy",
+   "fp": "v|ability to withstand the dynamic effects of short-circuit [s|oscillogram number|s011|#s011#0"
+  },
+  "t26r2c1": {
+   "kind": "field",
+   "key": "pr.atm",
+   "confidence": 0.9,
+   "method": "fuzzy",
+   "fp": "unit_cell|oil leakage test|transformer with all fittings including bushings in position, air pressure was a|atmospheric pressure|#0"
+  },
+  "t26r3c1": {
+   "kind": "field",
+   "key": "pr.amb",
+   "confidence": 0.9,
+   "method": "fuzzy",
+   "fp": "unit_cell|oil leakage test|transformer with all fittings including bushings in position, air pressure was a|ambient temperature|#0"
+  },
+  "b231n0": {
+   "kind": "field",
+   "key": "pr.atm",
+   "confidence": 0.88,
+   "method": "fuzzy",
+   "fp": "inline_number|||atmospheric pressure kpa|atmospheric pressure 91.0 kpa#0"
+  },
+  "t28r1c0": {
+   "kind": "field",
+   "key": "prr.kpa",
+   "method": "review",
+   "confidence": 1.0,
+   "fp": "v|ambient temperature c|air pressure above atmospheric pressure (kpa)||#0"
+  },
+  "t36r3c0": {
+   "kind": "field",
+   "key": "rep.nlc.lim100",
+   "confidence": 0.86,
+   "method": "fuzzy",
+   "fp": "v|average no-load current (percentage of rated full load curre|permissible value given in the standard||#0"
+  },
+  "t36r3c2": {
+   "kind": "field",
+   "key": "rep.nlc.lim112",
+   "confidence": 0.85,
+   "method": "fuzzy",
+   "fp": "v|average no-load current (percentage of rated full load curre|permissible value given in the standard||#1"
+  },
+  "t0r10c3": {
+   "kind": "field",
+   "key": "rep.sp.serial",
+   "confidence": 0.83,
+   "method": "fuzzy",
+   "fp": "v|test report|refer sheet 2 of 11|serial number|#0"
+  },
+  "t0r8c3": {
+   "kind": "field",
+   "key": "rep.sp.type",
+   "confidence": 0.79,
+   "method": "fuzzy",
+   "fp": "v|test report||type|#0"
+  },
+  "t36r3c1": {
+   "kind": "field",
+   "key": "rep.nlc.m100",
+   "confidence": 0.79,
+   "method": "fuzzy",
+   "fp": "v|average no-load current (percentage of rated full load curre|measured value||#0"
+  },
+  "t36r3c3": {
+   "kind": "field",
+   "key": "rep.nlc.m112",
+   "confidence": 0.78,
+   "method": "fuzzy",
+   "fp": "v|average no-load current (percentage of rated full load curre|measured value||#1"
+  },
+  "t0r26c2": {
+   "kind": "ignore",
+   "method": "review",
+   "confidence": 1.0,
+   "fp": "v|test report|:|name of the witnessing persons|#0"
+  },
+  "t0r26c3": {
+   "kind": "ignore",
+   "method": "review",
+   "confidence": 1.0,
+   "fp": "v|test report|is 1180 (part 1): 2014 (with amendment no.4: march 2021) / not applicable / nil|name of the witnessing persons|#0"
+  },
+  "t2r6c2": {
+   "kind": "ignore",
+   "method": "review",
+   "confidence": 1.0,
+   "fp": "v|(as assigned by the manufacturer)|:|insulation levels|#0"
+  },
+  "t2r6c3": {
+   "kind": "ignore",
+   "method": "review",
+   "confidence": 1.0,
+   "fp": "v|(as assigned by the manufacturer)||insulation levels|#0"
+  },
+  "t2r23c2": {
+   "kind": "ignore",
+   "method": "review",
+   "confidence": 1.0,
+   "fp": "v|(as assigned by the manufacturer)|:|winding details|#0"
+  },
+  "t2r23c3": {
+   "kind": "ignore",
+   "method": "review",
+   "confidence": 1.0,
+   "fp": "v|(as assigned by the manufacturer)||winding details|#0"
+  },
+  "t4r2c1": {
+   "kind": "ignore",
+   "method": "review",
+   "confidence": 1.0,
+   "fp": "v|summary of tests conducted|:|3. schedule of tests|#0"
+  },
+  "t4r2c2": {
+   "kind": "ignore",
+   "method": "review",
+   "confidence": 1.0,
+   "fp": "v|summary of tests conducted|refer the below table / refer sheet 5 of 11 to sheet 10 of 11|3. schedule of tests|#0"
+  },
+  "t22r0c1": {
+   "kind": "ignore",
+   "method": "review",
+   "confidence": 1.0,
+   "fp": "v|test results||special test|#0"
+  },
+  "t22r4c1": {
+   "kind": "ignore",
+   "method": "review",
+   "confidence": 1.0,
+   "fp": "v|test results||test conditions|#0"
+  },
+  "t22r9c1": {
+   "kind": "ignore",
+   "method": "review",
+   "confidence": 1.0,
+   "fp": "v|test results|short-circuit generator / three / 50 hz|test sample|#0"
+  },
+  "t22r13c1": {
+   "kind": "ignore",
+   "method": "review",
+   "confidence": 1.0,
+   "fp": "v|test results|50 hz / transformer as after routine tests / transformer tank isolated and groun|connection|#0"
+  },
+  "t22r16c1": {
+   "kind": "ignore",
+   "method": "review",
+   "confidence": 1.0,
+   "fp": "v|test results|transformer tank isolated and grounded through the protection current transforme|test details|#0"
+  },
+  "t22r18c1": {
+   "kind": "ignore",
+   "method": "review",
+   "confidence": 1.0,
+   "fp": "v|test results|shorted / connected to source / crtl/sc/tr-07b|short-circuit|#0"
+  },
+  "b206s0": {
+   "kind": "field",
+   "key": "sys.base_no",
+   "method": "review",
+   "confidence": 1.0,
+   "fp": "v|||the values of hot resistance of hv and lv windings at the time of shutdown are g|the values of hot resistance of hv and lv windings at the time of shutdown are g#0"
+  },
+  "b206s1": {
+   "kind": "field",
+   "key": "sys.base_no",
+   "method": "review",
+   "confidence": 1.0,
+   "fp": "v|||the values of hot resistance of hv and lv windings at the time of shutdown are g|the values of hot resistance of hv and lv windings at the time of shutdown are g#1"
+  },
+  "F0p2s0": {
+   "kind": "field",
+   "key": "sys.ulr_base",
+   "method": "review",
+   "confidence": 1.0,
+   "fp": "v|||f|#f#0"
+  },
+  "b208n0": {
+   "kind": "expr",
+   "expr": "f(tr.amb_shutdown, 1)",
+   "method": "review",
+   "confidence": 1.0,
+   "fp": "inline_number|||ambient temperature: °c|ambient temperature: 22.9 °c#0"
+  },
+  "t28r1c1": {
+   "kind": "field",
+   "key": "prr.min",
+   "method": "review",
+   "confidence": 1.0,
+   "fp": "v|ambient temperature c|duration (minutes)||#0"
+  },
+  "t28r1c2": {
+   "kind": "field",
+   "key": "rep.prr.obs",
+   "method": "review",
+   "confidence": 1.0,
+   "fp": "v|ambient temperature c|observations||#0"
+  }
+ },
+ "loops": [
+  {
+   "id": "loop_t8",
+   "t": 8,
+   "table_fp": "sl. no. drawing number sheet number revision number",
+   "first_row": 1,
+   "last_row": 4,
+   "list": "drawings",
+   "columns": [
+    "sl",
+    "number",
+    "sheet",
+    "rev"
+   ],
+   "confidence": 1.0
+  },
+  {
+   "id": "loop_t12",
+   "t": 12,
+   "table_fp": "measurement of voltage ratio",
+   "first_row": 3,
+   "last_row": 9,
+   "list": "ratio_rows",
+   "columns": [
+    "tap",
+    "pct",
+    "bu",
+    "bv",
+    "bw",
+    "au",
+    "av",
+    "aw"
+   ],
+   "confidence": 1.0
+  }
+ ],
+ "schedule": [
+  {
+   "t": 5,
+   "table_fp": "tests conducted clause number (s) sheet",
+   "rows": {
+    "1": {
+     "kind": "group",
+     "group": "special"
+    },
+    "2": {
+     "kind": "test",
+     "code": "sc_withstand"
+    },
+    "3": {
+     "kind": "test",
+     "code": "nlc_112"
+    },
+    "4": {
+     "kind": "group",
+     "group": "type"
+    },
+    "5": {
+     "kind": "test",
+     "code": "temp_rise"
+    },
+    "6": {
+     "kind": "test",
+     "code": "pressure_type"
+    },
+    "7": {
+     "kind": "group",
+     "group": "routine"
+    },
+    "8": {
+     "kind": "test",
+     "code": "winding_res"
+    },
+    "9": {
+     "kind": "test",
+     "code": "ratio"
+    },
+    "10": {
+     "kind": "test",
+     "code": "impedance"
+    },
+    "11": {
+     "kind": "test",
+     "code": "nll"
+    },
+    "12": {
+     "kind": "test",
+     "code": "ir"
+    },
+    "13": {
+     "kind": "test",
+     "code": "induced"
+    },
+    "14": {
+     "kind": "test",
+     "code": "sep_source"
+    },
+    "15": {
+     "kind": "test",
+     "code": "pressure_routine"
+    },
+    "16": {
+     "kind": "test",
+     "code": "oil_leak"
+    }
+   },
+   "sheet_col": 2
+  }
+ ],
+ "sections": [
+  {
+   "id": "wr_rows",
+   "tests": [
+    "winding_res"
+   ],
+   "rows": {
+    "table": "Measurement of winding resistance",
+    "from": "Measurement of winding resistance",
+    "to": "LV winding resistance"
+   }
+  },
+  {
+   "id": "ratio",
+   "tests": [
+    "ratio"
+   ],
+   "start": {
+    "type": "t",
+    "text": "Measurement of voltage ratio"
+   },
+   "end": {
+    "type": "t",
+    "text": "Check of phase displacement"
+   }
+  },
+  {
+   "id": "impedance",
+   "tests": [
+    "impedance"
+   ],
+   "start": {
+    "type": "t",
+    "text": "Measurement of short circuit impedance"
+   },
+   "end": {
+    "type": "t",
+    "text": "Measurement of short circuit impedance"
+   }
+  },
+  {
+   "id": "nll",
+   "tests": [
+    "nll"
+   ],
+   "start": {
+    "type": "p",
+    "text": "Measurement of no-load loss and current"
+   },
+   "end": {
+    "type": "t",
+    "text": "Condition of the sample"
+   }
+  },
+  {
+   "id": "eel",
+   "tests": [
+    "impedance",
+    "nll"
+   ],
+   "schedule": false,
+   "start": {
+    "type": "p",
+    "text": "Check of Energy Efficiency Level"
+   },
+   "end": {
+    "type": "t",
+    "text": "Before SCW test After SCW test"
+   }
+  },
+  {
+   "id": "ir",
+   "tests": [
+    "ir"
+   ],
+   "start": {
+    "type": "p",
+    "text": "Measurement of insulation resistance"
+   },
+   "end": {
+    "type": "t",
+    "text": "Insulation resistance of"
+   }
+  },
+  {
+   "id": "induced",
+   "tests": [
+    "induced"
+   ],
+   "start": {
+    "type": "p",
+    "text": "Induced over-voltage withstand test"
+   },
+   "end": {
+    "type": "t",
+    "text": "Test on"
+   }
+  },
+  {
+   "id": "sep_source",
+   "tests": [
+    "sep_source"
+   ],
+   "start": {
+    "type": "p",
+    "text": "Separate source voltage withstand test"
+   },
+   "end": {
+    "type": "t",
+    "text": "Test on"
+   }
+  },
+  {
+   "id": "sc_block",
+   "tests": [
+    "sc_withstand"
+   ],
+   "start": {
+    "type": "t",
+    "text": "SPECIAL TEST"
+   },
+   "end": {
+    "type": "t",
+    "text": "Ability to Withstand the Dynamic Effects"
+   }
+  },
+  {
+   "id": "sc_rows",
+   "tests": [
+    "sc_withstand"
+   ],
+   "rows": {
+    "table": "Reactance values after transformer attains ambient temperature",
+    "from": "Reactance values after",
+    "to": "Negative value of % change"
+   }
+  },
+  {
+   "id": "sc_inspection",
+   "tests": [
+    "sc_withstand"
+   ],
+   "start": {
+    "type": "p",
+    "text": "SCW - Short-Circuit Withstand",
+    "nth": 3
+   },
+   "end": {
+    "type": "p",
+    "text": "Oil:"
+   }
+  },
+  {
+   "id": "routine_s8",
+   "tests": [
+    "oil_leak",
+    "pressure_routine"
+   ],
+   "schedule": false,
+   "start": {
+    "type": "p",
+    "text": "ROUTINE TESTS",
+    "exact": true
+   },
+   "end": {
+    "type": "p",
+    "text": "ROUTINE TESTS",
+    "exact": true
+   }
+  },
+  {
+   "id": "oil_leak",
+   "tests": [
+    "oil_leak"
+   ],
+   "start": {
+    "type": "p",
+    "text": "OIL LEAKAGE TEST"
+   },
+   "end": {
+    "type": "t",
+    "text": "Head pressure calculated"
+   }
+  },
+  {
+   "id": "pressure_routine",
+   "tests": [
+    "pressure_routine"
+   ],
+   "start": {
+    "type": "p",
+    "text": "Pressure (ROUTINE Test)"
+   },
+   "end": {
+    "type": "t",
+    "text": "Air pressure above atmospheric pressure"
+   }
+  },
+  {
+   "id": "temp_rise",
+   "tests": [
+    "temp_rise"
+   ],
+   "start": {
+    "type": "p",
+    "text": "TYPE TEST",
+    "exact": true
+   },
+   "end": {
+    "type": "t",
+    "text": "Measured Points"
+   }
+  },
+  {
+   "id": "pressure_type",
+   "tests": [
+    "pressure_type"
+   ],
+   "start": {
+    "type": "p",
+    "text": "Pressure (TYPE TEST)"
+   },
+   "end": {
+    "type": "t",
+    "text": "Vacuum in level of mm of Mercury"
+   }
+  },
+  {
+   "id": "nlc_112",
+   "tests": [
+    "nlc_112"
+   ],
+   "start": {
+    "type": "p",
+    "text": "SPECIAL TESTS",
+    "exact": true
+   },
+   "end": {
+    "type": "t",
+    "text": "Average no-load current"
+   }
+  }
+ ],
+ "replacements": [
+  {
+   "pattern": "P\\. Naveenkumar",
+   "replace": "{{F:sys.engineer_name}}"
+  },
+  {
+   "pattern": "Principal \\(X\\)",
+   "replace": "Principal ({{F:sys.tap_principal}})"
+  },
+  {
+   "pattern": "Highest \\(X\\)",
+   "replace": "Highest ({{F:sys.tap_highest}})"
+  },
+  {
+   "pattern": "Lowest \\(X\\)",
+   "replace": "Lowest ({{F:sys.tap_lowest}})"
+  },
+  {
+   "pattern": "\\bX \\(Principal\\)",
+   "replace": "{{F:sys.tap_principal}} (Principal)"
+  },
+  {
+   "pattern": "\\bX \\(Highest\\)",
+   "replace": "{{F:sys.tap_highest}} (Highest)"
+  },
+  {
+   "pattern": "\\bX \\(Lowest\\)",
+   "replace": "{{F:sys.tap_lowest}} (Lowest)"
+  },
+  {
+   "pattern": "Principal \\(3\\)",
+   "replace": "Principal ({{F:sys.tap_principal}})",
+   "scope": {
+    "block": "Measurement of short circuit impedance",
+    "type": "t"
+   }
+  },
+  {
+   "pattern": "Highest \\(1\\)",
+   "replace": "Highest ({{F:sys.tap_highest}})",
+   "scope": {
+    "block": "Measurement of short circuit impedance",
+    "type": "t"
+   }
+  },
+  {
+   "pattern": "^\\(7\\)$",
+   "replace": "({{F:sys.tap_lowest}})",
+   "scope": {
+    "block": "Measurement of short circuit impedance",
+    "type": "t"
+   }
+  },
+  {
+   "pattern": "Dyn11",
+   "replace": "{{F:vg.bt}}",
+   "scope": {
+    "block": "Check of phase displacement",
+    "type": "t"
+   }
+  },
+  {
+   "pattern": "complies with",
+   "replace": "{{F:rep.complies_text}}",
+   "scope": {
+    "block": "Conclusion:",
+    "type": "p"
+   }
+  },
+  {
+   "pattern": "Variation of reactance is within limits",
+   "replace": "{{F:rep.xr_conclusion}}"
+  },
+  {
+   "pattern": "Type Tests,\\s+All Routine Tests & Special Test",
+   "replace": "{{F:sys.tests_particulars}}",
+   "scope": {
+    "block": "Test Report Number",
+    "type": "t"
+   }
+  },
+  {
+   "pattern": "^\\s*Nil\\s*$",
+   "replace": "{{F:rep.customer_requirement}}",
+   "scope": {
+    "block": "Test Report Number",
+    "type": "t",
+    "row_text": "requirement"
+   }
+  },
+  {
+   "pattern": "^\\s*Nil\\s*$",
+   "replace": "{{F:sys.deviations}}",
+   "scope": {
+    "block": "Test Report Number",
+    "type": "t",
+    "row_text": "Deviations"
+   }
+  },
+  {
+   "pattern": "^\\s*None\\s*$",
+   "replace": "{{F:rep.witness_other}}",
+   "scope": {
+    "block": "Test Report Number",
+    "type": "t",
+    "row_text": "Other than customer"
+   }
+  },
+  {
+   "pattern": "^\\s*One\\s*$",
+   "replace": "{{F:rep.n_samples_words}}",
+   "scope": {
+    "block": "Test Report Number",
+    "type": "t",
+    "row_text": "Number of samples"
+   }
+  },
+  {
+   "pattern": "CRTL/SC/TR-07B",
+   "replace": "{{F:sys.circuit_list}}",
+   "scope": {
+    "block": "4. Oscillogram number(s)",
+    "type": "t",
+    "row_text": "Test circuit diagram"
+   }
+  },
+  {
+   "pattern": "CRTL/SC/TR-07B",
+   "replace": "{{F:sys.circuit_no}}",
+   "scope": {
+    "block": "SPECIAL TEST",
+    "type": "t",
+    "row_text": "Test circuit drawing number"
+   }
+  },
+  {
+   "pattern": "Transformer as after routine tests",
+   "replace": "{{F:rep.sc.condition}}",
+   "scope": {
+    "block": "SPECIAL TEST",
+    "type": "t",
+    "row_text": "Condition before test"
+   }
+  },
+  {
+   "pattern": "(Atmospheric Pressure\\s*)kPa",
+   "replace": "\\1{{F:pr.atm}} kPa",
+   "scope": {
+    "block": "Atmospheric Pressure kPa",
+    "type": "p"
+   }
+  },
+  {
+   "pattern": "(Ambient temperature)\\s+",
+   "replace": "\\1      {{F:pr.amb}} ",
+   "scope": {
+    "block": "Ambient temperature C",
+    "type": "p"
+   }
+  },
+  {
+   "kind": "cell",
+   "table": "Test Report Number",
+   "row": 41,
+   "col": 2,
+   "field": "sys.qr"
+  }
+ ],
+ "keep_sheets_with": [
+  "Conclusion:"
+ ],
+ "qr_media": "word/media/image3.png",
+ "footer_seal": true,
+ "stats": {
+  "slots": 250,
+  "required": 224,
+  "mapped_required": 224,
+  "coverage": 1.0,
+  "methods": {
+   "fuzzy": 219,
+   "review": 26
+  },
+  "unmapped_required": []
+ },
+ "auto_stats": {
+  "slots": 250,
+  "required": 224,
+  "mapped_required": 205,
+  "coverage": 0.915,
+  "methods": {
+   "fuzzy": 225
+  },
+  "unmapped_required": [
+   "t0r26c2",
+   "t0r26c3",
+   "t2r6c2",
+   "t2r6c3",
+   "t2r23c2",
+   "t2r23c3",
+   "t4r2c1",
+   "t4r2c2",
+   "t22r0c1",
+   "t22r4c1",
+   "t22r9c1",
+   "t22r13c1",
+   "t22r16c1",
+   "t22r18c1",
+   "t28r1c1",
+   "t28r1c2",
+   "b206s0",
+   "b206s1",
+   "F0p2s0"
+  ]
+ },
+ "compiled_meta": {
+  "sections": [
+   {
+    "id": "wr_rows",
+    "tests": [
+     "winding_res"
+    ],
+    "sheet": 5,
+    "schedule": true
+   },
+   {
+    "id": "ratio",
+    "tests": [
+     "ratio"
+    ],
+    "sheet": 5,
+    "schedule": true
+   },
+   {
+    "id": "impedance",
+    "tests": [
+     "impedance"
+    ],
+    "sheet": 5,
+    "schedule": true
+   },
+   {
+    "id": "nll",
+    "tests": [
+     "nll"
+    ],
+    "sheet": 5,
+    "schedule": true
+   },
+   {
+    "id": "eel",
+    "tests": [
+     "impedance",
+     "nll"
+    ],
+    "sheet": 6,
+    "schedule": false
+   },
+   {
+    "id": "ir",
+    "tests": [
+     "ir"
+    ],
+    "sheet": 6,
+    "schedule": true
+   },
+   {
+    "id": "induced",
+    "tests": [
+     "induced"
+    ],
+    "sheet": 6,
+    "schedule": true
+   },
+   {
+    "id": "sep_source",
+    "tests": [
+     "sep_source"
+    ],
+    "sheet": 6,
+    "schedule": true
+   },
+   {
+    "id": "sc_block",
+    "tests": [
+     "sc_withstand"
+    ],
+    "sheet": 7,
+    "schedule": true
+   },
+   {
+    "id": "sc_rows",
+    "tests": [
+     "sc_withstand"
+    ],
+    "sheet": 8,
+    "schedule": true
+   },
+   {
+    "id": "sc_inspection",
+    "tests": [
+     "sc_withstand"
+    ],
+    "sheet": 8,
+    "schedule": true
+   },
+   {
+    "id": "routine_s8",
+    "tests": [
+     "oil_leak",
+     "pressure_routine"
+    ],
+    "sheet": 8,
+    "schedule": false
+   },
+   {
+    "id": "oil_leak",
+    "tests": [
+     "oil_leak"
+    ],
+    "sheet": 8,
+    "schedule": true
+   },
+   {
+    "id": "pressure_routine",
+    "tests": [
+     "pressure_routine"
+    ],
+    "sheet": 8,
+    "schedule": true
+   },
+   {
+    "id": "temp_rise",
+    "tests": [
+     "temp_rise"
+    ],
+    "sheet": 9,
+    "schedule": true
+   },
+   {
+    "id": "pressure_type",
+    "tests": [
+     "pressure_type"
+    ],
+    "sheet": 10,
+    "schedule": true
+   },
+   {
+    "id": "nlc_112",
+    "tests": [
+     "nlc_112"
+    ],
+    "sheet": 10,
+    "schedule": true
+   }
+  ],
+  "sheets": [
+   {
+    "n": 1,
+    "sections": [],
+    "keep": false
+   },
+   {
+    "n": 2,
+    "sections": [],
+    "keep": false
+   },
+   {
+    "n": 3,
+    "sections": [],
+    "keep": false
+   },
+   {
+    "n": 4,
+    "sections": [],
+    "keep": false
+   },
+   {
+    "n": 5,
+    "sections": [
+     "wr_rows",
+     "ratio",
+     "impedance",
+     "nll"
+    ],
+    "keep": false
+   },
+   {
+    "n": 6,
+    "sections": [
+     "eel",
+     "ir",
+     "induced",
+     "sep_source"
+    ],
+    "keep": false
+   },
+   {
+    "n": 7,
+    "sections": [
+     "sc_block"
+    ],
+    "keep": false
+   },
+   {
+    "n": 8,
+    "sections": [
+     "sc_rows",
+     "sc_inspection",
+     "routine_s8",
+     "oil_leak",
+     "pressure_routine"
+    ],
+    "keep": false
+   },
+   {
+    "n": 9,
+    "sections": [
+     "temp_rise"
+    ],
+    "keep": false
+   },
+   {
+    "n": 10,
+    "sections": [
+     "pressure_type",
+     "nlc_112"
+    ],
+    "keep": true
+   },
+   {
+    "n": 11,
+    "sections": [],
+    "keep": false
+   }
+  ],
+  "source_sheet_count": 11,
+  "loops": [
+   "drawings",
+   "ratio_rows"
+  ],
+  "schedule_tests": [
+   "oil_leak",
+   "pressure_routine",
+   "sep_source",
+   "induced",
+   "ir",
+   "nll",
+   "impedance",
+   "ratio",
+   "winding_res",
+   "pressure_type",
+   "temp_rise",
+   "nlc_112",
+   "sc_withstand"
+  ],
+  "compiled_slots": 231,
+  "warnings": [],
+  "expr_slots": {
+   "b208n0": "f(tr.amb_shutdown, 1)"
+  }
+ },
+ "dry_run": {
+  "unfilled": [],
+  "warnings": []
+ }
+}

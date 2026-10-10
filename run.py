@@ -7,6 +7,12 @@ Start the ATRG server for the whole local network.
 The laptop running this acts as the server; other computers on the same
 Wi-Fi / LAN open the printed http://<LAN-IP>:<port> address.
 """
+import os
+
+from dotenv import load_dotenv
+
+load_dotenv(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".env"))  # before config is read
+
 import argparse
 import socket
 
@@ -14,6 +20,7 @@ from waitress import serve
 
 import config
 from app import create_app
+from app.ai import client as ai
 from app.report import detect_converter
 
 
@@ -54,7 +61,9 @@ def main():
         print(f" LAN:     http://{ip}:{args.port}   <- open this on other computers")
     print(f" PDF export: {kind or 'not available (reports served as DOCX)'} {path or ''}")
     print(f" Database:   {config.DB_PATH}")
-    print(" Demo accounts (after `python seed.py`): admin/admin123  engineer1/eng123  customer1/cust123")
+    print(f" AI (Gemini):  {ai.status_text()}")
+    print(" Demo accounts (after `python seed.py --reset`): hod/hod12345  admin/admin12345  "
+          "engineer1/eng12345  customer1/cust12345")
     print(" If other PCs cannot connect, allow the port in Windows Firewall (see README).")
     print("=" * 66)
     serve(app, host=args.host, port=args.port, threads=args.threads, channel_timeout=120)

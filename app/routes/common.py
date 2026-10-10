@@ -1,9 +1,14 @@
 """
-Login / register / logout views shared by the three portals.
+Login / register / logout views shared by the four portals, plus small helpers.
 
-Each portal registers its own copy under its own URL prefix
-(/customer/login, /engineer/login, /admin/login ...), with its own page title
-and session key - so the portals stay separate.
+Each portal registers its own copy under its own URL prefix (/customer/login,
+/engineer/login, /admin/login, /hod/login) with its own session key.
+
+Account approval chain
+    customer  active immediately
+    engineer  pending until an admin approves
+    admin     pending until the HOD approves (approval type `admin_account`)
+    hod       no public registration (manage.py create-hod, or an HOD creates another HOD)
 """
 import re
 import sqlite3
@@ -11,13 +16,18 @@ import sqlite3
 from flask import flash, g, redirect, render_template, request, url_for
 
 import config
-from .. import audit, auth
+from .. import approvals, audit, auth, notify
 from ..db import get_db, tx
 
 ROLE_META = {
-    "customer": {"title": "Customer Portal", "icon": "🏭", "blurb": "Submit test requests, track progress and download sealed reports."},
-    "engineer": {"title": "Test Engineer Portal", "icon": "⚡", "blurb": "Upload logsheets, verify readings and lock jobs for review."},
-    "admin": {"title": "Test In-charge / HOD Portal", "icon": "🛡️", "blurb": "Accept requests, assign engineers, review and issue reports."},
+    "customer": {"title": "Customer", "long": "Customer portal",
+                 "blurb": "Submit test requests, follow their progress and download issued reports."},
+    "engineer": {"title": "Test Engineer", "long": "Test engineer portal",
+                 "blurb": "Enter test readings from logsheets, verify them and lock jobs for review."},
+    "admin": {"title": "Test In-charge", "long": "Test In-charge portal",
+              "blurb": "Accept requests, assign engineers, review results and forward reports to the HOD."},
+    "hod": {"title": "Head of Division", "long": "HOD portal",
+            "blurb": "Authorize reports and approve changes made by the Test In-charge."},
 }
 
 
@@ -34,9 +44,10 @@ def register_auth_views(bp, role):
             if user is None or not auth.check_password(user["password_hash"], pw):
                 audit.log(conn, "login.fail", "user", username, None, {"role": role},
                           user={"id": user["id"] if user else None, "username": username, "role": role})
-                flash("Invalid username or password for the %s portal." % role, "danger")
+                flash("Invalid username or password.", "danger")
             elif user["status"] == "pending":
-                flash("Your account is waiting for approval by the Test In-charge.", "warning")
+                who = "the HOD" if role == "admin" else "the Test In-charge"
+                flash(f"Your account is waiting for approval by {who}.", "warning")
             elif user["status"] != "active":
                 flash("This account is disabled.", "danger")
             else:
@@ -48,52 +59,77 @@ def register_auth_views(bp, role):
                 return redirect(url_for(f"{role}.dashboard"))
         return render_template("auth_login.html", role=role, meta=meta)
 
-    @bp.route("/register", methods=["GET", "POST"])
-    def register():
-        form = request.form
-        if request.method == "POST":
-            errors = []
-            username = (form.get("username") or "").strip()
-            if not re.fullmatch(r"[A-Za-z0-9_.-]{3,32}", username):
-                errors.append("Username: 3-32 letters, digits, . _ -")
-            if len(form.get("password") or "") < 6:
-                errors.append("Password must be at least 6 characters.")
-            if form.get("password") != form.get("password2"):
-                errors.append("Passwords do not match.")
-            for k, lab in (("full_name", "Full name"), ("email", "E-mail"), ("phone", "Phone")):
-                if not (form.get(k) or "").strip():
-                    errors.append(f"{lab} is required.")
-            if form.get("email") and not re.fullmatch(r"[^@\s]+@[^@\s]+\.[^@\s]+", form.get("email").strip()):
-                errors.append("E-mail address looks invalid.")
-            if role == "customer" and not ((form.get("company") or "").strip() and (form.get("address") or "").strip()):
-                errors.append("Company name and address are required for customers.")
-            if role == "admin" and form.get("invite_code") != config.ADMIN_INVITE_CODE:
-                errors.append("Invalid admin invite code.")
-            if not errors:
-                conn = get_db()
-                status = "pending" if role == "engineer" else "active"
-                try:
-                    with tx(conn):
-                        uid = auth.register_user(conn, role, form, status)
-                        audit.log(conn, "user.register", "user", uid, None, {"username": username, "role": role, "status": status},
-                                  user={"id": uid, "username": username, "role": role})
-                except sqlite3.IntegrityError:
-                    errors.append("That username is already taken.")
-                else:
-                    if status == "pending":
-                        flash("Registered. An administrator must approve your engineer account before you can log in.", "info")
+    if role != "hod":
+        @bp.route("/register", methods=["GET", "POST"])
+        def register():
+            form = request.form
+            errors = {}
+            if request.method == "POST":
+                errors = validate_registration(form, role)
+                if not errors:
+                    conn = get_db()
+                    status = "active" if role == "customer" else "pending"
+                    try:
+                        with tx(conn):
+                            uid = auth.register_user(conn, role, form, status)
+                            new_user = {"id": uid, "username": form["username"].strip(), "role": role,
+                                        "full_name": form["full_name"].strip()}
+                            audit.log(conn, "user.register", "user", uid, None,
+                                      {"username": new_user["username"], "role": role, "status": status}, user=new_user)
+                            if role == "admin":
+                                approvals.submit(conn, "admin_account", {"user_id": uid}, new_user, entity_id=uid,
+                                                 summary=f"New Test In-charge account: {new_user['full_name']} "
+                                                         f"({new_user['username']})")
+                            elif role == "engineer":
+                                notify.send(conn, f"Engineer account waiting for approval: {new_user['full_name']}",
+                                            "/admin/engineers", role="admin")
+                    except sqlite3.IntegrityError:
+                        errors["username"] = "This username is already taken."
                     else:
-                        flash("Registration successful - please log in.", "success")
-                    return redirect(url_for(f"{role}.login"))
-            for e in errors:
-                flash(e, "danger")
-        return render_template("auth_register.html", role=role, meta=meta, form=form)
+                        if role == "admin":
+                            flash("Registration received. The HOD must approve your account before you can sign in.", "info")
+                        elif role == "engineer":
+                            flash("Registration received. The Test In-charge must approve your account before you can "
+                                  "sign in.", "info")
+                        else:
+                            flash("Registration complete. Please sign in.", "success")
+                        return redirect(url_for(f"{role}.login"))
+            return render_template("auth_register.html", role=role, meta=meta, form=form, errors=errors)
 
     @bp.route("/logout", methods=["POST", "GET"])
     def logout():
         auth.logout(role)
-        flash("Logged out.", "info")
+        flash("Signed out.", "info")
         return redirect(url_for(f"{role}.login"))
+
+    @bp.route("/notifications")
+    @auth.role_required(role)
+    def notifications():
+        conn = get_db()
+        rows = notify.for_user(conn, g.user)
+        notify.mark_read(conn, g.user)
+        return render_template("notifications.html", rows=rows)
+
+
+def validate_registration(form, role):
+    errors = {}
+    username = (form.get("username") or "").strip()
+    if not re.fullmatch(r"[A-Za-z0-9_.-]{3,32}", username):
+        errors["username"] = "3 to 32 characters: letters, digits, dot, dash or underscore."
+    if len(form.get("password") or "") < config.MIN_PASSWORD_LENGTH:
+        errors["password"] = f"At least {config.MIN_PASSWORD_LENGTH} characters."
+    if form.get("password") != form.get("password2"):
+        errors["password2"] = "Passwords do not match."
+    for k in ("full_name", "email", "phone"):
+        if not (form.get(k) or "").strip():
+            errors[k] = "Required."
+    if form.get("email") and not re.fullmatch(r"[^@\s]+@[^@\s]+\.[^@\s]+", form.get("email").strip()):
+        errors["email"] = "Enter a valid e-mail address."
+    if role == "customer":
+        for k in ("company", "address"):
+            if not (form.get(k) or "").strip():
+                errors[k] = "Required."
+    return errors
 
 
 def expected_version():
@@ -104,5 +140,6 @@ def expected_version():
     return v or request.headers.get("X-Record-Version")
 
 
-def current_user():
-    return g.user
+def outcome_flash(outcome, done_msg, pending_msg="Sent to the HOD for approval."):
+    kind, _ = outcome
+    flash(done_msg if kind == "applied" else pending_msg, "success" if kind == "applied" else "info")

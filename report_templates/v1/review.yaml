@@ -1,0 +1,89 @@
+# Reviewer decisions for template v1 (Transformer_Test_report_format_1.docx).
+# tools/import_template.py runs the auto-mapper first and then applies these decisions.
+# Everything here could also be done in the mapping editor of the Admin portal.
+
+equipment_type: "Distribution Transformer, IS 1180"
+name: "CPRI Transformer Test Report (11 sheets)"
+sheet_marker: "^TEST REPORT$"
+qr_media: "word/media/image3.png"       # the static QR picture on the notes sheet is replaced by the report's QR
+keep_sheets_with: ["Conclusion:"]
+
+# Slot decisions by slot id (ids come from the parser and are stable for this source document)
+slots:
+  # section headings / labels inside tables that have no value
+  t0r26c2: ignore
+  t0r26c3: ignore
+  t2r6c2: ignore
+  t2r6c3: ignore
+  t2r23c2: ignore
+  t2r23c3: ignore
+  t4r2c1: ignore
+  t4r2c2: ignore
+  t22r0c1: ignore
+  t22r4c1: ignore
+  t22r9c1: ignore
+  t22r13c1: ignore
+  t22r16c1: ignore
+  t22r18c1: ignore
+  # values the fuzzy matcher scores below its threshold
+  b206s0: sys.base_no
+  b206s1: sys.base_no
+  F0p2s0: sys.ulr_base
+  b208n0: {kind: expr, expr: "f(tr.amb_shutdown, 1)"}   # one decimal as in the CPRI format
+  b232n0: pr.amb
+  b148c: sc.insp.conductor
+  b149c: sc.insp.spacers
+  b150c: sc.insp.oil
+  # routine and type pressure tables have identical headers; the heading above them is not in capitals
+  t28r1c0: prr.kpa
+  t28r1c1: prr.min
+  t28r1c2: rep.prr.obs
+  t33r1c0: prt.kpa
+
+# Text-anchored sections: printed only when one of `tests` was requested.
+# schedule: false = auxiliary part that is not listed in the "Sheet" column of the schedule of tests.
+sections:
+  - {id: wr_rows, tests: [winding_res], rows: {table: "Measurement of winding resistance", from: "Measurement of winding resistance", to: "LV winding resistance"}}
+  - {id: ratio, tests: [ratio], start: {type: t, text: "Measurement of voltage ratio"}, end: {type: t, text: "Check of phase displacement"}}
+  - {id: impedance, tests: [impedance], start: {type: t, text: "Measurement of short circuit impedance"}, end: {type: t, text: "Measurement of short circuit impedance"}}
+  - {id: nll, tests: [nll], start: {type: p, text: "Measurement of no-load loss and current"}, end: {type: t, text: "Condition of the sample"}}
+  - {id: eel, tests: [impedance, nll], schedule: false, start: {type: p, text: "Check of Energy Efficiency Level"}, end: {type: t, text: "Before SCW test After SCW test"}}
+  - {id: ir, tests: [ir], start: {type: p, text: "Measurement of insulation resistance"}, end: {type: t, text: "Insulation resistance of"}}
+  - {id: induced, tests: [induced], start: {type: p, text: "Induced over-voltage withstand test"}, end: {type: t, text: "Test on"}}
+  - {id: sep_source, tests: [sep_source], start: {type: p, text: "Separate source voltage withstand test"}, end: {type: t, text: "Test on"}}
+  - {id: sc_block, tests: [sc_withstand], start: {type: t, text: "SPECIAL TEST"}, end: {type: t, text: "Ability to Withstand the Dynamic Effects"}}
+  - {id: sc_rows, tests: [sc_withstand], rows: {table: "Reactance values after transformer attains ambient temperature", from: "Reactance values after", to: "Negative value of % change"}}
+  - {id: sc_inspection, tests: [sc_withstand], start: {type: p, text: "SCW - Short-Circuit Withstand", nth: 3}, end: {type: p, text: "Oil:"}}
+  - {id: routine_s8, tests: [oil_leak, pressure_routine], schedule: false, start: {type: p, text: "ROUTINE TESTS", exact: true}, end: {type: p, text: "ROUTINE TESTS", exact: true}}
+  - {id: oil_leak, tests: [oil_leak], start: {type: p, text: "OIL LEAKAGE TEST"}, end: {type: t, text: "Head pressure calculated"}}
+  - {id: pressure_routine, tests: [pressure_routine], start: {type: p, text: "Pressure (ROUTINE Test)"}, end: {type: t, text: "Air pressure above atmospheric pressure"}}
+  - {id: temp_rise, tests: [temp_rise], start: {type: p, text: "TYPE TEST", exact: true}, end: {type: t, text: "Measured Points"}}
+  - {id: pressure_type, tests: [pressure_type], start: {type: p, text: "Pressure (TYPE TEST)"}, end: {type: t, text: "Vacuum in level of mm of Mercury"}}
+  - {id: nlc_112, tests: [nlc_112], start: {type: p, text: "SPECIAL TESTS", exact: true}, end: {type: t, text: "Average no-load current"}}
+
+# Manual rules for fixed text that carries data in this format ({{F:key}} = registry value)
+replacements:
+  - {pattern: 'P\. Naveenkumar', replace: '{{F:sys.engineer_name}}'}
+  - {pattern: 'Principal \(X\)', replace: 'Principal ({{F:sys.tap_principal}})'}
+  - {pattern: 'Highest \(X\)', replace: 'Highest ({{F:sys.tap_highest}})'}
+  - {pattern: 'Lowest \(X\)', replace: 'Lowest ({{F:sys.tap_lowest}})'}
+  - {pattern: '\bX \(Principal\)', replace: '{{F:sys.tap_principal}} (Principal)'}
+  - {pattern: '\bX \(Highest\)', replace: '{{F:sys.tap_highest}} (Highest)'}
+  - {pattern: '\bX \(Lowest\)', replace: '{{F:sys.tap_lowest}} (Lowest)'}
+  - {pattern: 'Principal \(3\)', replace: 'Principal ({{F:sys.tap_principal}})', scope: {block: "Measurement of short circuit impedance", type: t}}
+  - {pattern: 'Highest \(1\)', replace: 'Highest ({{F:sys.tap_highest}})', scope: {block: "Measurement of short circuit impedance", type: t}}
+  - {pattern: '^\(7\)$', replace: '({{F:sys.tap_lowest}})', scope: {block: "Measurement of short circuit impedance", type: t}}
+  - {pattern: 'Dyn11', replace: '{{F:vg.bt}}', scope: {block: "Check of phase displacement", type: t}}
+  - {pattern: 'complies with', replace: '{{F:rep.complies_text}}', scope: {block: "Conclusion:", type: p}}
+  - {pattern: 'Variation of reactance is within limits', replace: '{{F:rep.xr_conclusion}}'}
+  - {pattern: 'Type Tests,\s+All Routine Tests & Special Test', replace: '{{F:sys.tests_particulars}}', scope: {block: "Test Report Number", type: t}}
+  - {pattern: '^\s*Nil\s*$', replace: '{{F:rep.customer_requirement}}', scope: {block: "Test Report Number", type: t, row_text: "requirement"}}
+  - {pattern: '^\s*Nil\s*$', replace: '{{F:sys.deviations}}', scope: {block: "Test Report Number", type: t, row_text: "Deviations"}}
+  - {pattern: '^\s*None\s*$', replace: '{{F:rep.witness_other}}', scope: {block: "Test Report Number", type: t, row_text: "Other than customer"}}
+  - {pattern: '^\s*One\s*$', replace: '{{F:rep.n_samples_words}}', scope: {block: "Test Report Number", type: t, row_text: "Number of samples"}}
+  - {pattern: 'CRTL/SC/TR-07B', replace: '{{F:sys.circuit_list}}', scope: {block: "4. Oscillogram number(s)", type: t, row_text: "Test circuit diagram"}}
+  - {pattern: 'CRTL/SC/TR-07B', replace: '{{F:sys.circuit_no}}', scope: {block: "SPECIAL TEST", type: t, row_text: "Test circuit drawing number"}}
+  - {pattern: 'Transformer as after routine tests', replace: '{{F:rep.sc.condition}}', scope: {block: "SPECIAL TEST", type: t, row_text: "Condition before test"}}
+  - {pattern: '(Atmospheric Pressure\s*)kPa', replace: '\1{{F:pr.atm}} kPa', scope: {block: "Atmospheric Pressure kPa", type: p}}
+  - {pattern: '(Ambient temperature)\s+', replace: '\1      {{F:pr.amb}} ', scope: {block: "Ambient temperature C", type: p}}
+  - {kind: cell, table: "Test Report Number", row: 41, col: 2, field: sys.qr}

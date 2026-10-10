@@ -1,32 +1,28 @@
 {% extends "base.html" %}
-{% from "_macros.html" import badge with context %}
-{% block title %}My requests{% endblock %}
+{% from "components/macros.html" import status_badge with context %}
+{% block title %}Test requests{% endblock %}
+{% block actions %}<a class="btn btn-primary btn-sm" href="{{ url_for('customer.new_request') }}">New test request</a>{% endblock %}
 {% block content %}
-<div class="page-head">
-  <h1>My test requests</h1>
-  <a class="btn btn-primary" href="{{ url_for('customer.new_request') }}">+ New test request</a>
+<div class="panel">
+  {% if rows %}
+  <div class="table-wrap">
+  <table class="table">
+    <thead><tr><th>Reference</th><th>Submitted</th><th>Sample</th><th>Serial no.</th><th>Sample code</th><th>Test report no.</th><th>Status</th></tr></thead>
+    <tbody>
+    {% for r in rows %}{% set f = r.form_json|fromjson %}
+      <tr class="row-link" data-href="{{ url_for('customer.request_detail', job_id=r.id) }}">
+        <td><a href="{{ url_for('customer.request_detail', job_id=r.id) }}">{{ r.ref or r.id }}</a></td>
+        <td class="nowrap">{{ r.created_at|d }}</td>
+        <td>{{ f.rating }}<div class="small muted">{{ f.samples }}</div></td>
+        <td>{{ f.serial_numbers }}</td>
+        <td class="mono">{{ r.sample_code or '-' }}</td>
+        <td class="mono">{{ r.report_no or '-' }}</td>
+        <td>{{ status_badge(r.status) }}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  {% else %}<div class="empty">No requests yet.</div>{% endif %}
 </div>
-{% if not rows %}
-  <div class="card empty">No requests yet. Click <b>New test request</b> to submit your first sample.</div>
-{% else %}
-<div class="card">
-<table class="tbl">
-  <thead><tr><th>#</th><th>Submitted</th><th>Sample</th><th>Serial no.</th><th>CPRI sample code</th><th>Test report no.</th><th>Status</th><th></th></tr></thead>
-  <tbody>
-  {% for r in rows %}{% set f = r.form_json|fromjson %}
-    <tr>
-      <td>{{ r.id }}</td>
-      <td>{{ r.created_at|d }}</td>
-      <td>{{ f.rating }}<br><small class="muted">{{ f.samples }}</small></td>
-      <td>{{ f.serial_numbers }}</td>
-      <td class="mono">{{ r.sample_code or '—' }}</td>
-      <td class="mono">{{ r.report_no or '—' }}</td>
-      <td>{{ badge(r.status) }}</td>
-      <td><a class="btn btn-sm" href="{{ url_for('customer.request_detail', job_id=r.id) }}">Open</a></td>
-    </tr>
-  {% endfor %}
-  </tbody>
-</table>
-</div>
-{% endif %}
 {% endblock %}

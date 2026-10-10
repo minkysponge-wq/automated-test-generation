@@ -1,0 +1,405 @@
+# =====================================================================
+# ATRG rule checks (IS 1180 (Part 1): 2014 based)
+# ---------------------------------------------------------------------
+# Evaluated by app/rules.py with a safe expression evaluator (simpleeval,
+# never Python eval). Names available in expressions:
+#   reading / computed keys as dotted names   wr.hv.n.bt.uv, calc.nt.bt.z75, ...
+#   form.<request or proforma field>          form.pf_impedance
+#   lim.<limit from the HOD-approved config>  lim.nlc_limit_100_pct
+#   K                                         235 (Cu) or 225 (Al)
+#   helper functions                          see FUNCTIONS in app/rules.py
+#
+# Rule keys
+#   id / label / formula   may use {placeholders} from `foreach` and `vars`
+#   foreach                expand one rule into several (lists, or an expression returning a list)
+#   value                  expression for the measured value
+#   limit                  expression for the limit (optional)
+#   vars                   extra named expressions (evaluated after value and limit, in order)
+#   check                  boolean expression; omitted = calculated value only (no pass/fail)
+#   display / limit_text   Python format strings for the UI and report
+#   report_missing         show "awaiting data" when inputs are missing
+# =====================================================================
+
+labels:
+  side: {bt: "before SCW", at: "after SCW"}
+  tap: {n: Principal, h: Highest, l: Lowest, nt: Principal, ht: Highest, lt: Lowest}
+
+rules:
+  # ---------------------------------------------------------------- 21.2 a) winding resistance
+  - id: "hv_r75_{tap}_{side}"
+    test: winding_res
+    station: losses
+    foreach: {side: [bt, at], tap: [n, h, l]}
+    label: "HV resistance at 75 °C, {tap_label} tap, {side_label}"
+    value: "calc.r75.hv.{side}.{tap}"
+    display: "{value:.4f}"
+    formula: "R75 = Ravg x (K+75)/(K+t)"
+  - id: "lv_r75_{side}"
+    test: winding_res
+    station: losses
+    foreach: {side: [bt, at]}
+    label: "LV resistance at 75 °C, {side_label} (mΩ)"
+    value: "calc.r75.lv.{side}"
+    display: "{value:.4f}"
+    formula: "R75 = Ravg x (K+75)/(K+t)"
+  - id: "hv_unbalance_{side}"
+    test: winding_res
+    station: losses
+    foreach: {side: [bt, at]}
+    label: "HV phase resistance unbalance, principal tap, {side_label}"
+    value: "unbalance(wr.hv.n.{side}.uv, wr.hv.n.{side}.vw, wr.hv.n.{side}.wu)"
+    limit: "2.0"
+    check: "value <= limit"
+    display: "{value:.2f} %"
+    limit_text: "<= {limit:.2f} %"
+    formula: "(Rmax - Rmin) / Ravg x 100"
+
+  # ---------------------------------------------------------------- 21.2 b) voltage ratio and vector group
+  - id: "ratio_t{i}_{side}"
+    test: ratio
+    station: routine
+    foreach: {i: "range(1, n_taps() + 1)", side: [bt, at]}
+    label: "Voltage ratio tap {i} ({pct} %), {side_label}"
+    value: "ratio_dev({i}, '{side}')"
+    limit: "lim.ratio_tolerance_pct"
+    vars:
+      nom: "nominal_ratio(tap_pct({i}))"
+      pct: "pct_text(tap_pct({i}))"
+    check: "abs(value) <= limit"
+    display: "{value:+.2f} %"
+    limit_text: "± {limit:.2f} % of {nom:.3f}"
+    formula: "(measured - nominal)/nominal x 100, worst of U/V/W"
+  - id: "vector_group_{side}"
+    test: ratio
+    station: routine
+    foreach: {side: [bt, at]}
+    label: "Vector group, {side_label}"
+    value: "s(vg.{side})"
+    vars:
+      declared: "s(form.pf_vector_group)"
+    check: "same_vg(value, declared)"
+    display: "{value}"
+    limit_text: "declared {declared}"
+    formula: "measured == declared"
+
+  # ---------------------------------------------------------------- 21.2 d) / 21.4 c) no-load current
+  - id: "nlc100_{side}"
+    test: nll
+    station: losses
+    foreach: {side: [bt, at]}
+    label: "No-load current at 100 % V, {side_label}"
+    value: "calc.nlc100.{side}"
+    limit: "lim.nlc_limit_100_pct"
+    vars:
+      amps: "rated_current() * limit / 100"
+      i0: "nll.{side}.i"
+      irated: "rated_current()"
+    check: "value <= limit"
+    display: "{value:.2f} %"
+    limit_text: "<= {limit:.1f} % ({amps:.3f} A)"
+    formula: "I0/Irated x 100 = {i0} / {irated:.2f} x 100"
+    report_missing: true
+  - id: nlc112
+    test: nlc_112
+    station: losses
+    label: "No-load current at 112.5 % V"
+    value: "calc.nlc112"
+    limit: "lim.nlc_limit_112_pct"
+    vars:
+      amps: "rated_current() * limit / 100"
+      i0: "nll.o112.i"
+      irated: "rated_current()"
+    check: "value <= limit"
+    display: "{value:.2f} %"
+    limit_text: "<= {limit:.1f} % ({amps:.3f} A)"
+    formula: "I0/Irated x 100 = {i0} / {irated:.2f} x 100"
+    report_missing: true
+
+  # ---------------------------------------------------------------- 21.2 c) impedance, load loss, energy efficiency
+  - id: "impedance_{side}"
+    test: impedance
+    station: losses
+    foreach: {side: [bt, at]}
+    label: "% impedance at 75 °C, principal tap, {side_label}"
+    value: "calc.nt.{side}.z75"
+    limit: "lim.impedance_tolerance_pct"
+    vars:
+      decl: "num(form.pf_impedance)"
+      dev: "(value - decl) / decl * 100"
+    check: "abs(dev) <= limit"
+    display: "{value:.3f} % ({dev:+.2f} %)"
+    limit_text: "{decl:.2f} % ± {limit:.0f} %"
+    formula: "(Zmeas - Zdecl)/Zdecl x 100"
+  - id: "xcheck_tl100_{tap}_{side}"
+    test: impedance
+    station: losses
+    foreach: {side: [bt, at], tap: [nt, ht, lt]}
+    label: "Cross-check 100 % total loss, {tap_label} tap, {side_label}"
+    value: "calc.{tap}.{side}.tl100"
+    limit: "lim.loss_crosscheck_tolerance_pct"
+    vars:
+      recomputed: "nll.{side}.p + calc.{tap}.{side}.ll100"
+      diff: "abs(recomputed - value) / recomputed * 100"
+    check: "diff <= limit"
+    display: "{value:.2f} W (recomputed {recomputed:.2f} W)"
+    limit_text: "difference <= {limit} %"
+    formula: "NLL + LL100"
+  - id: "eel_tl50_{side}"
+    test: impedance
+    station: losses
+    foreach: {side: [bt, at]}
+    label: "Total loss at 50 % load, {side_label}"
+    value: "calc.nt.{side}.tl50"
+    limit: "num(form.pf_max_tl50)"
+    vars:
+      eel: "s(form.pf_eel)"
+    check: "value <= limit"
+    display: "{value:.2f} W"
+    limit_text: "<= {limit:g} W ({eel})"
+    formula: "NLL + LL at 50 % load (75 °C)"
+  - id: "eel_tl100_{side}"
+    test: impedance
+    station: losses
+    foreach: {side: [bt, at]}
+    label: "Total loss at 100 % load, {side_label}"
+    value: "calc.nt.{side}.tl100"
+    limit: "num(form.pf_max_tl100)"
+    vars:
+      eel: "s(form.pf_eel)"
+    check: "value <= limit"
+    display: "{value:.2f} W"
+    limit_text: "<= {limit:g} W ({eel})"
+    formula: "NLL + LL at 100 % load (75 °C)"
+
+  # ---------------------------------------------------------------- 21.2 e/f/g) dielectric tests
+  - id: "ir_{k}_{side}"
+    test: ir
+    station: routine
+    foreach: {side: [bt, at], k: [hv_e, lv_e, hv_lv]}
+    label: "Insulation resistance {k}, {side_label}"
+    value: "ir.{side}.{k}"
+    display: "{value:g} GΩ"
+    formula: "measured at 5 kV"
+  - id: "induced_{side}"
+    test: induced
+    station: routine
+    foreach: {side: [bt, at]}
+    label: "Induced over-voltage withstand, {side_label}"
+    value: "iov.{side}.v"
+    vars:
+      obs: "s(iov.{side}.obs)"
+      need: "2 * num(form.pf_lv_v) * 0.99"
+      lv: "num(form.pf_lv_v)"
+    check: "value >= need and withstood_text(obs)"
+    display: "{value:g} V, {obs}"
+    limit_text: ">= 2 x {lv:g} V and withstood"
+    formula: "applied >= 2 x rated LV; observation contains 'withstood'"
+  - id: "{w}_{side}"
+    test: sep_source
+    station: routine
+    foreach: {side: [bt, at], w: [hvpf, lvpf]}
+    label: "{w} separate source withstand, {side_label}"
+    value: "{w}.{side}.kv"
+    vars:
+      obs: "s({w}.{side}.obs)"
+      need: "num(form.pf_hv_ac) if '{w}' == 'hvpf' else num(form.pf_lv_ac)"
+    check: "value >= need and withstood_text(obs)"
+    display: "{value:g} kV, {obs}"
+    limit_text: ">= {need:g} kV and withstood"
+    formula: "applied >= declared AC level; observation contains 'withstood'"
+
+  # ---------------------------------------------------------------- 21.4 b) short-circuit withstand
+  - id: "xchg_{tap}"
+    test: sc_withstand
+    station: losses
+    foreach: {tap: [nt, ht, lt]}
+    label: "% change in reactance after SC test, {tap_label} tap"
+    value: "calc.xchg.{tap}"
+    limit: "lim.reactance_change_limit_pct"
+    vars:
+      xb: "calc.{tap}.bt.x50"
+      xa: "calc.{tap}.at.x50"
+    check: "abs(value) <= limit"
+    display: "{value:+.3f} %"
+    limit_text: "|ΔX| <= {limit:.1f} %"
+    formula: "(Xbefore - Xafter)/Xbefore x 100 = ({xb} - {xa})/{xb} x 100"
+    report_missing: true
+  - id: "sc_peak_{n}"
+    test: sc_withstand
+    station: sc
+    foreach: {n: [s002, s003, s004, s005, s006, s007, s008, s009, s010]}
+    label: "Oscillogram {N} peak current ({tapname} tap)"
+    value: "sc.{n}.pk"
+    limit: "lim.sc_peak_tolerance_pct"
+    vars:
+      req: "req_pk(sc.{n}.tap)"
+      dev: "(value - req) / req * 100"
+      tapname: "tap_name(sc.{n}.tap)"
+      N: "upper('{n}')"
+    check: "abs(dev) <= limit"
+    display: "{value:.2f} kA ({dev:+.1f} %)"
+    limit_text: "{req:.2f} kA ± {limit:.0f} %"
+    formula: "(Ipk - Ipk,req)/Ipk,req x 100"
+  - id: sc_thermal
+    test: sc_withstand
+    station: sc
+    label: "Thermal withstand shot S011"
+    value: "sc.s011.rms_avg"
+    limit: "lim.sc_rms_tolerance_pct"
+    vars:
+      dur: "sc.s011.dur"
+      req: "sc.req.nt.rms"
+      dev: "(value - req) / req * 100"
+      tmin: "lim.sc_thermal_min_duration_s"
+    check: "abs(dev) <= limit and dur >= tmin"
+    display: "{value:.2f} kA for {dur:.2f} s ({dev:+.1f} %)"
+    limit_text: "{req:.2f} kA ± {limit:.0f} %, >= {tmin:.1f} s"
+    formula: "rms within tolerance and duration >= minimum"
+  - id: "obs_{k}"
+    test: sc_withstand
+    station: sc
+    foreach: {k: [during, after]}
+    label: "Observation {k} SC test"
+    value: "s(sc.obs.{k})"
+    check: "contains(value, 'no abnormal', 'nil', 'no damage')"
+    display: "{value}"
+    limit_text: "no abnormality"
+    formula: "text check"
+
+  # ---------------------------------------------------------------- 21.3 b) temperature rise
+  - id: tr_top_oil
+    test: temp_rise
+    station: temprise
+    label: "Top-oil temperature rise"
+    value: "calc.tr.top"
+    limit: "min(num(form.pf_gtr_top_oil, lim.std_top_oil_rise), lim.std_top_oil_rise)"
+    vars:
+      g: "num(form.pf_gtr_top_oil, lim.std_top_oil_rise)"
+      std: "lim.std_top_oil_rise"
+    check: "value <= limit"
+    display: "{value:.1f} °C"
+    limit_text: "<= {limit:g} °C (guaranteed {g:g}, standard {std:g})"
+    formula: "top oil - average ambient at steady state"
+  - id: tr_top_oil_xcheck
+    test: temp_rise
+    station: temprise
+    label: "Cross-check top-oil rise with last hourly reading"
+    value: "calc.tr.lastrise"
+    vars:
+      top: "calc.tr.top"
+    check: "abs(value - top) <= 0.3"
+    display: "{value:.2f} °C"
+    limit_text: "within 0.3 °C of result"
+    formula: "top oil - avg ambient (last logged hour)"
+  - id: "tr_{w}"
+    test: temp_rise
+    station: temprise
+    foreach: {w: [hv, lv]}
+    label: "{W} winding temperature rise"
+    value: "calc.tr.{w}"
+    limit: "min(num(form.pf_gtr_winding, lim.std_winding_rise), lim.std_winding_rise)"
+    vars:
+      g: "num(form.pf_gtr_winding, lim.std_winding_rise)"
+      std: "lim.std_winding_rise"
+      W: "upper('{w}')"
+    check: "round(value, 1) <= limit"
+    display: "{value:.1f} °C"
+    limit_text: "<= {limit:g} °C (guaranteed {g:g}, standard {std:g})"
+    formula: "Δθ = (Rh/Rc)(K+tc) - K - ta + corr"
+    report_missing: true
+  - id: "tr_{w}_xcheck"
+    test: temp_rise
+    station: temprise
+    foreach: {w: [hv, lv]}
+    label: "Cross-check {W} rise typed on logsheet"
+    value: "tr.{w}_rise"
+    vars:
+      calcv: "calc.tr.{w}"
+      W: "upper('{w}')"
+    check: "abs(value - calcv) <= 0.2"
+    display: "{value:.1f} °C (calc {calcv:.2f})"
+    limit_text: "within 0.2 °C"
+    formula: "logsheet vs recomputed"
+  - id: tr_losses
+    test: temp_rise
+    station: temprise
+    label: "Total losses injected = NLL + FLL"
+    value: "tr.total_loss"
+    limit: "lim.loss_crosscheck_tolerance_pct"
+    vars:
+      total: "tr.nll + tr.fll"
+      diff: "abs(value - total) / total * 100"
+    check: "diff <= limit"
+    display: "{value:.2f} W (NLL+FLL {total:.2f} W)"
+    limit_text: "difference <= {limit} %"
+    formula: "Ptotal = P0 + Pk(75 °C, lowest tap)"
+
+  # ---------------------------------------------------------------- 21.3 d) / 21.2 h) / 21.2 j) pressure and oil leakage
+  - id: "{p}_defl"
+    test: pressure_type
+    station: pressure
+    foreach: {p: [prt, prv]}
+    label: "Permanent deflection of flat plate ({what})"
+    value: "{p}.perm_defl"
+    limit: "lim.pressure_perm_defl_max_mm"
+    vars:
+      what: "'air pressure' if '{p}' == 'prt' else 'vacuum'"
+    check: "value <= limit"
+    display: "{value:.2f} mm"
+    limit_text: "<= {limit:.1f} mm"
+    formula: "max |final - initial| over reference points"
+    report_missing: true
+  - id: "{p}_defl_xcheck"
+    test: pressure_type
+    station: pressure
+    foreach: {p: [prt, prv]}
+    label: "Cross-check deflection from reference points ({p})"
+    value: "max_defl('{p}')"
+    vars:
+      perm: "{p}.perm_defl"
+    check: "abs(value - perm) <= 0.011"
+    display: "max {value:.2f} mm"
+    limit_text: "equals reported value ± 0.01"
+    formula: "max |final - initial|"
+  - id: "{p}_obs"
+    test: pressure_type
+    station: pressure
+    foreach: {p: [prt, prv]}
+    label: "Observation - {p} test"
+    value: "s({p}.obs)"
+    check: "contains(value, 'no permanent', 'within limit', 'no leak')"
+    display: "{value}"
+    limit_text: "no permanent deformation beyond limit"
+    formula: "text check"
+  - id: prr_obs
+    test: pressure_routine
+    station: pressure
+    label: "Pressure test (routine) observation"
+    value: "s(prr.obs)"
+    check: "contains(value, 'no leak', 'no permanent', 'within limit')"
+    display: "{value}"
+    limit_text: "no leakage / no permanent deformation"
+    formula: "text check"
+    report_missing: true
+  - id: ol_pressure
+    test: oil_leak
+    station: pressure
+    label: "Oil leakage test pressure >= 2 x head pressure"
+    value: "ol.test_kpa"
+    vars:
+      head: "ol.head_kpa"
+      need: "2 * ol.head_kpa"
+    check: "value >= need - 0.05"
+    display: "{value:g} kPa (head {head:g} kPa)"
+    limit_text: ">= {need:g} kPa"
+    formula: "test pressure at base >= 2 x normal head"
+  - id: ol_obs
+    test: oil_leak
+    station: pressure
+    label: "Oil leakage observation"
+    value: "s(ol.obs)"
+    check: "contains(value, 'no leak')"
+    display: "{value}"
+    limit_text: "no leakage"
+    formula: "text check"
+    report_missing: true

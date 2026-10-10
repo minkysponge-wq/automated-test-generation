@@ -1,227 +1,243 @@
 {% extends "base.html" %}
-{% from "_macros.html" import badge, timeline, passbadge, verify_box with context %}
-{% block title %}Job #{{ job.id }}{% endblock %}
+{% from "components/macros.html" import status_badge, stepper, result_badge, verify_box with context %}
+{% set nav = 'admin.dashboard' %}
+{% block title %}{{ job.report_no or job.ref }}{% endblock %}
+{% block heading %}{{ job.report_no or job.ref }} <span class="sub">{{ form.customer_name }} - {{ form.rating }}, serial {{ form.serial_numbers }}</span>{% endblock %}
+{% block actions %}{{ status_badge(job.status) }}{% if job.is_sealed %}<span class="badge plain">Sealed</span>{% endif %}{% endblock %}
 {% block content %}
-<div class="page-head">
-  <div>
-    <h1>{{ job.report_no or ('Request #' ~ job.id) }} {{ badge(job.status) }} {% if job.is_sealed %}<span class="pill ok">🔒 sealed</span>{% endif %}</h1>
-    <div class="muted">{{ form.customer_name }} · {{ form.rating }} · Sl. No. {{ form.serial_numbers }}
-      {% if job.sample_code %} · Sample code <b class="mono">{{ job.sample_code }}</b>{% endif %}
-      {% if original %} · <b>Amendment of <a href="{{ url_for('admin.request_detail', job_id=original.id) }}">{{ original.report_no }}</a></b>{% endif %}</div>
-  </div>
-  <a class="btn" href="{{ url_for('admin.dashboard') }}">← Dashboard</a>
+<div data-poll="{{ url_for('api.job_status', job_id=job.id) }}" data-version="{{ job.version }}">
+  {{ stepper(job) }}
+  <p class="note poll-note" style="margin-top:6px"></p>
 </div>
+{% if original %}<div class="callout">Amendment of <a href="{{ url_for('admin.request_detail', job_id=original.id) }}">{{ original.report_no }}</a>. The original report is unchanged.</div>{% endif %}
+{% for p in pending %}<div class="callout warn">Waiting for the HOD: {{ p.summary }} (requested {{ p.requested_at|dt }}).</div>{% endfor %}
+{% if job.return_comment and job.status in ['ADMIN_REVIEW', 'RETURNED'] %}<div class="callout warn">{{ job.return_comment }}</div>{% endif %}
 
-<div class="card" data-poll="{{ url_for('api.job_status', job_id=job.id) }}" data-version="{{ job.version }}">
-  {{ timeline(job) }}
-  <div class="poll-note muted"></div>
-</div>
-
-{# ------------------------------------------------------------ ACCEPT / REJECT #}
-{% if job.status == 'SUBMITTED' %}
-<div class="grid2">
-  <form class="card" method="post" action="{{ url_for('admin.accept', job_id=job.id) }}" id="accept-form">
-    <h2>Accept request</h2>
-    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-    <input type="hidden" name="version" value="{{ job.version }}">
-    <p class="muted">Request form sheet 3 - check of sample condition and laboratory capability.</p>
-    <div class="radio-group"><div class="lbl">Physical condition of sample</div>
-      <label class="radio"><input type="radio" name="physical_condition" value="Suitable" checked> Suitable</label>
-      <label class="radio"><input type="radio" name="physical_condition" value="Not suitable"> Not suitable</label></div>
-    <div class="radio-group"><div class="lbl">Lab has capability to perform the tests</div>
-      <label class="radio"><input type="radio" name="lab_capability" value="Yes" checked> Yes</label>
-      <label class="radio"><input type="radio" name="lab_capability" value="No"> No</label></div>
-    <label>Remarks <input name="condition_remarks" placeholder="e.g. received in good condition"></label>
-    <h3>Work instruction (CPRI/QAF/02)</h3>
-    <div class="grid2">
-      <label>Customer reference no. <input name="customer_ref"></label>
-      <label>Date of test <input name="date_of_test" placeholder="DD-MM-YYYY"></label>
-      <label>Special instructions <input name="special_instructions"></label>
-      <label>Standard used is latest? <select name="latest_standard"><option>Yes</option><option>No</option></select></label>
-      <label class="span2">Deviation / change from standard <input name="deviation" value="Nil"></label>
+{# ------------------------------------------------------------ accept / reject #}
+{% if job.status == 'SUBMITTED' and not pending %}
+<div class="split">
+  <form class="panel" method="post" action="{{ url_for('admin.accept', job_id=job.id) }}" id="accept-form">
+    <div class="panel-head"><h2>Accept request</h2>{% if needs.accept_request %}<span class="badge amber">Needs HOD approval</span>{% endif %}</div>
+    <div class="panel-body">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="version" value="{{ job.version }}">
+      <p class="note">Request form sheet 3: condition of the sample and capability of the laboratory.</p>
+      <div class="choice-group"><div class="lbl">Physical condition of the sample</div>
+        <label class="choice"><input type="radio" name="physical_condition" value="Suitable" checked> Suitable</label>
+        <label class="choice"><input type="radio" name="physical_condition" value="Not suitable"> Not suitable</label></div>
+      <div class="choice-group"><div class="lbl">Laboratory has the capability</div>
+        <label class="choice"><input type="radio" name="lab_capability" value="Yes" checked> Yes</label>
+        <label class="choice"><input type="radio" name="lab_capability" value="No"> No</label></div>
+      <label>Remarks <input name="condition_remarks" placeholder="For example: received in good condition"></label>
+      <h3>Work instruction (CPRI/QAF/02)</h3>
+      <div class="form-grid">
+        <label>Customer reference <input name="customer_ref" value="{{ job.ref }}"></label>
+        <label>Date of test <input name="date_of_test" placeholder="DD-MM-YYYY"></label>
+        <label>Special instructions <input name="special_instructions"></label>
+        <label>Standard is the latest edition <select name="latest_standard"><option>Yes</option><option>No</option></select></label>
+        <label class="full">Deviation from the standard <input name="deviation" value="Nil"></label>
+      </div>
+      <div class="form-actions"><button class="btn btn-primary" id="accept-btn">Accept and allocate numbers</button></div>
     </div>
-    <button class="btn btn-primary" id="accept-btn">✓ Accept &amp; allocate sample code + report number</button>
   </form>
-  <form class="card" method="post" action="{{ url_for('admin.reject', job_id=job.id) }}">
-    <h2>Reject request</h2>
-    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-    <input type="hidden" name="version" value="{{ job.version }}">
-    <label>Reason (shown to the customer) <textarea name="reason" rows="3" required></textarea></label>
-    <input type="hidden" name="physical_condition" value="Not suitable">
-    <button class="btn btn-danger">✕ Reject</button>
+  <form class="panel" method="post" action="{{ url_for('admin.reject', job_id=job.id) }}">
+    <div class="panel-head"><h2>Reject request</h2>{% if needs.reject_request %}<span class="badge amber">Needs HOD approval</span>{% endif %}</div>
+    <div class="panel-body">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="version" value="{{ job.version }}">
+      <input type="hidden" name="physical_condition" value="Not suitable">
+      <label>Reason, shown to the customer <textarea name="reason" rows="4" required></textarea></label>
+      <div class="form-actions"><button class="btn btn-danger">Reject</button></div>
+    </div>
   </form>
 </div>
 {% endif %}
 
-{# ------------------------------------------------------------ WORK INSTRUCTION + ASSIGN #}
+{# ------------------------------------------------------------ work instruction + engineers #}
 {% if job.sample_code %}
-<div class="grid2">
-  <div class="card">
-    <h2>Work instruction</h2>
-    <table class="kv small">
-      <tr><th>Test series no.</th><td class="mono">{{ wi.test_series_no }}</td></tr>
+<div class="split">
+  <div class="panel">
+    <div class="panel-head"><h2>Work instruction</h2>
+      <div><a class="btn btn-sm" href="{{ url_for('admin.work_instruction', job_id=job.id, fmt='docx') }}">DOCX</a>
+        <a class="btn btn-sm" href="{{ url_for('admin.work_instruction', job_id=job.id, fmt='pdf') }}">PDF</a></div></div>
+    <div class="panel-body"><table class="kv">
+      <tr><th>Test series number</th><td class="mono">{{ wi.test_series_no }}</td></tr>
       <tr><th>Sample code</th><td class="mono">{{ wi.sample_code }}</td></tr>
       <tr><th>Reference standard</th><td>{{ wi.reference_standard }}</td></tr>
-      <tr><th>Work allotted to</th><td>{{ wi.work_allotted_to or '—' }}</td></tr>
-      <tr><th>Condition check</th><td>{{ condition.physical_condition }} · capability {{ condition.lab_capability }} {{ condition.remarks }}</td></tr>
+      <tr><th>Work allotted to</th><td>{{ wi.work_allotted_to or '-' }}</td></tr>
+      <tr><th>Sample condition</th><td>{{ condition.physical_condition }}; capability: {{ condition.lab_capability }}. {{ condition.remarks }}</td></tr>
     </table>
-    <a class="btn btn-sm" href="{{ url_for('admin.work_instruction', job_id=job.id, fmt='docx') }}">⬇ DOCX</a>
-    <a class="btn btn-sm" href="{{ url_for('admin.work_instruction', job_id=job.id, fmt='pdf') }}">⬇ PDF</a>
+    <div class="reader" data-url="{{ url_for('admin.wi_scan', job_id=job.id) }}" data-station="wi" style="margin-top:12px">
+      <div class="small" style="font-weight:500">Cross-check a scanned, hand-filled work instruction (optional)</div>
+      <div class="inline-form" style="margin-top:4px">
+        <input type="file" class="read-file" accept=".pdf,.jpg,.jpeg,.png" aria-label="Scanned work instruction" style="flex:1;margin:0">
+        <button type="button" class="btn btn-sm read-btn">Read document</button>
+      </div>
+      <p class="note small read-status"></p>
+      <div class="wi-compare" data-wi='{{ wi|tojson }}'></div>
+    </div></div>
   </div>
-  <div class="card">
-    <h2>Engineers</h2>
-    {% if assigned %}<ul>{% for a in assigned %}<li><b>{{ a.full_name }}</b> - {{ a.role }}{% if a.station %} ({{ STATIONS[a.station].title }}){% endif %}</li>{% endfor %}</ul>{% endif %}
-    {% if job.status in ['ACCEPTED','ASSIGNED','IN_TESTING','RETURNED'] %}
-    <form method="post" action="{{ url_for('admin.assign', job_id=job.id) }}" id="assign-form">
-      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-      <input type="hidden" name="version" value="{{ job.version }}">
-      <label>Responsible test engineer
-        <select name="responsible" required>
-          <option value="">— choose —</option>
-          {% for e in engineers %}<option value="{{ e.id }}" {% if assigned and assigned[0].user_id == e.id %}selected{% endif %}>{{ e.full_name }} ({{ e.username }})</option>{% endfor %}
-        </select></label>
-      {% if engineers|length > 1 %}
-      <div class="lbl">Additional engineers (optional, per station)</div>
-      {% for e in engineers %}
-        <div class="addl"><label class="check"><input type="checkbox" name="additional" value="{{ e.id }}"> {{ e.full_name }}</label>
-          <select name="station_{{ e.id }}"><option value="">All stations</option>
-            {% for st in stations %}<option value="{{ st.station }}">{{ st.title }}</option>{% endfor %}</select></div>
-      {% endfor %}
+  <div class="panel">
+    <div class="panel-head"><h2>Engineers</h2>{% if needs.assign_engineers %}<span class="badge amber">Needs HOD approval</span>{% endif %}</div>
+    <div class="panel-body">
+      {% if assigned %}<table class="kv">{% for a in assigned %}<tr><th>{{ 'Responsible' if a.role == 'responsible' else 'Additional' }}</th><td>{{ a.full_name }}{% if a.station %} ({{ STATIONS[a.station].title }}){% endif %}</td></tr>{% endfor %}</table>{% endif %}
+      {% if job.status in ['ACCEPTED', 'ASSIGNED', 'IN_TESTING', 'RETURNED'] and not pending %}
+      <form method="post" action="{{ url_for('admin.assign', job_id=job.id) }}" id="assign-form" style="margin-top:8px">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="version" value="{{ job.version }}">
+        <label>Responsible test engineer
+          <select name="responsible" required><option value="">Select</option>
+            {% for e in engineers %}<option value="{{ e.id }}" {% if assigned and assigned[0].user_id == e.id %}selected{% endif %}>{{ e.full_name }} ({{ e.username }})</option>{% endfor %}</select></label>
+        {% if engineers|length > 1 %}
+        <div class="choice-group"><div class="lbl">Additional engineers (optional, per test station)</div>
+        {% for e in engineers %}
+          <div class="inline-form" style="margin-bottom:4px"><label class="choice"><input type="checkbox" name="additional" value="{{ e.id }}"> {{ e.full_name }}</label>
+            <select name="station_{{ e.id }}" aria-label="Station for {{ e.full_name }}" style="width:auto;margin:0"><option value="">All stations</option>
+              {% for st in stations %}<option value="{{ st.station }}">{{ st.title }}</option>{% endfor %}</select></div>
+        {% endfor %}</div>
+        {% endif %}
+        {% if not engineers %}<p class="note">No approved engineers. Approve one on the Engineers page.</p>{% endif %}
+        <div class="form-actions"><button class="btn btn-primary btn-sm" id="assign-btn">Assign</button></div>
+      </form>
       {% endif %}
-      {% if not engineers %}<p class="warn-text">No approved engineers - approve one on the <a href="{{ url_for('admin.engineers') }}">Engineers</a> page.</p>{% endif %}
-      <button class="btn btn-primary" id="assign-btn">Assign</button>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+{# ------------------------------------------------------------ progress #}
+{% if stations %}
+<div class="panel">
+  <div class="panel-head"><h2>Testing progress</h2></div>
+  <table class="table compact">
+    <thead><tr><th>Test station</th><th class="num">Values</th><th class="num">Required missing</th><th class="num">Pass</th><th class="num">Fail</th><th>Verified</th></tr></thead>
+    {% for s in stations %}
+      <tr><td>{{ s.title }}</td><td class="num">{{ s.n_values }}</td><td class="num">{{ s.missing|length }}</td><td class="num">{{ s.passed }}</td><td class="num">{{ s.failed }}</td>
+        <td>{% if s.verified %}<span class="badge green">Verified</span> <span class="small muted">{{ s.verified_at|dt }}</span>{% else %}-{% endif %}</td></tr>
+    {% endfor %}
+  </table>
+</div>
+{% endif %}
+
+{# ------------------------------------------------------------ technical review #}
+{% if results and job.status in ['ADMIN_REVIEW', 'PENDING_HOD', 'ISSUED', 'LOCKED_BY_ENGINEER', 'RETURNED', 'IN_TESTING'] %}
+<div class="panel">
+  <div class="panel-head"><h2>Rule checks</h2>
+    <span class="small muted">{{ results|selectattr('passed', 'equalto', 1)|list|length }} pass, {{ results|selectattr('passed', 'equalto', 0)|list|length }} fail, {{ results|selectattr('passed', 'none')|list|length }} calculated</span></div>
+  <div class="table-wrap" style="max-height:420px">
+  <table class="table compact">
+    <thead><tr><th>Result</th><th>Station</th><th>Check</th><th class="num">Value</th><th>Limit used</th><th>Formula</th></tr></thead>
+    <tbody>
+    {% for r in results %}
+      <tr class="{{ 'is-fail' if r.passed == 0 }}"><td>{{ result_badge(r.passed) }}</td><td class="nowrap">{{ STATIONS[r.station].title if r.station in STATIONS else r.station }}</td>
+        <td>{{ r.label }}</td><td class="num">{{ r.value }}</td><td>{{ r.limit_text }}</td><td class="formula">{{ r.formula }}</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</div>
+
+<div class="panel">
+  <div class="panel-head"><h2>Corrections</h2><span class="small muted">{{ corrections|length }} change(s)</span></div>
+  {% if corrections %}
+  <table class="table compact">
+    <thead><tr><th>When</th><th>Who</th><th>Field</th><th class="num">Old</th><th class="num">New</th><th>Reason</th></tr></thead>
+    {% for c in corrections %}<tr><td class="nowrap">{{ c.ts|dt }}</td><td>{{ c.full_name }}</td><td class="mono">{{ c.key }}</td>
+      <td class="num"><span class="was">{{ c.old_value }}</span></td><td class="num corrected">{{ c.new_value }}</td><td>{{ c.reason }}</td></tr>{% endfor %}
+  </table>
+  {% else %}<div class="empty">No manual corrections. Every value is as imported from the logsheets.</div>{% endif %}
+</div>
+
+<details class="panel">
+  <summary class="panel-head" style="cursor:pointer"><h2>All readings ({{ readings|length }})</h2><span class="small muted">value, imported value, source</span></summary>
+  <div class="table-wrap">
+  <table class="table compact">
+    <thead><tr><th>Station</th><th>Key</th><th class="num">Value</th><th>Unit</th><th class="num">Imported</th><th>Source</th></tr></thead>
+    {% for r in readings %}<tr><td>{{ r.station }}</td><td class="mono">{{ r.key }}</td>
+      <td class="num {{ 'corrected' if r.current_value != r.imported_value }}">{{ r.current_value }}</td><td>{{ r.unit }}</td>
+      <td class="num">{% if r.current_value != r.imported_value %}<span class="was">{{ r.imported_value }}</span>{% endif %}</td>
+      <td class="small">{{ r.source }} {{ r.source_cell }}</td></tr>{% endfor %}
+  </table>
+  </div>
+</details>
+{% endif %}
+
+{% if job.status == 'ADMIN_REVIEW' and not pending %}
+<div class="panel">
+  <div class="panel-head"><h2>Report preview</h2>
+    <div><button class="btn btn-sm" id="load-preview" data-src="{{ url_for('admin.preview', job_id=job.id, fmt='pdf') }}">Generate preview</button>
+      <a class="btn btn-sm" href="{{ url_for('admin.preview', job_id=job.id, fmt='docx') }}">Download DOCX</a></div></div>
+  <div class="panel-body">
+    <p class="note">Rendered from the current data with the active template{% if template %} ({{ template.name }}, v{{ template.version }}){% endif %}. Not sealed.{% if not converter %} No PDF converter is installed, so the preview is a DOCX download.{% endif %}</p>
+    <iframe id="preview-frame" class="hidden" title="Report preview" style="width:100%;height:820px;border:1px solid var(--border);border-radius:6px"></iframe>
+  </div>
+</div>
+<div class="split">
+  <form class="panel" method="post" action="{{ url_for('admin.forward', job_id=job.id) }}"
+        data-confirm-title="Forward {{ job.report_no }} to the HOD"
+        data-confirm="The readings, rule results and corrections of this job will be frozen for the HOD's authorization. The HOD's approval issues and seals the report; a rejection returns it to you.">
+    <div class="panel-head"><h2>Forward to the HOD</h2></div>
+    <div class="panel-body">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="version" value="{{ job.version }}">
+      <p class="note">Technical review complete. Only the HOD's authorization issues and seals the report.</p>
+      {% if results|selectattr('passed', 'equalto', 0)|list %}<div class="callout warn">Some rule checks failed. The report will state "Not within limits" for them.</div>{% endif %}
+      <div class="form-actions"><button class="btn btn-primary" id="forward-btn">Forward for authorization</button></div>
+    </div>
+  </form>
+  <form class="panel" method="post" action="{{ url_for('admin.return_job', job_id=job.id) }}">
+    <div class="panel-head"><h2>Return to engineer</h2>{% if needs.return_job %}<span class="badge amber">Needs HOD approval</span>{% endif %}</div>
+    <div class="panel-body">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="version" value="{{ job.version }}">
+      <label>Comment (required) <textarea name="comment" rows="3" required></textarea></label>
+      <div class="form-actions"><button class="btn btn-danger">Return and unlock</button></div>
+    </div>
+  </form>
+</div>
+{% endif %}
+
+{# ------------------------------------------------------------ issued #}
+{% if rep %}
+<div class="panel">
+  <div class="panel-head"><h2>Issued report {{ rep.report_no }}</h2>
+    <div>{% if rep.pdf_path %}<a class="btn btn-primary btn-sm" target="_blank" href="{{ url_for('admin.download_report', job_id=job.id, fmt='pdf') }}">Open PDF</a>{% endif %}
+      <a class="btn btn-sm" href="{{ url_for('admin.download_report', job_id=job.id, fmt='docx') }}">Download DOCX</a></div></div>
+  <div class="panel-body">
+    <table class="kv">
+      <tr><th>Issued</th><td>{{ rep.issued_at|dt }}</td></tr>
+      <tr><th>Report template</th><td>v{{ rep.template_version }} <span class="mono small">{{ (rep.template_sha or '')[:16] }}</span></td></tr>
+      <tr><th>SHA-256 snapshot</th><td class="mono">{{ rep.sha256_snapshot }}</td></tr>
+      <tr><th>SHA-256 DOCX</th><td class="mono">{{ rep.sha256_docx }}</td></tr>
+      <tr><th>SHA-256 PDF</th><td class="mono">{{ rep.sha256_pdf or '-' }}</td></tr>
+    </table>
+    {{ verify_box(url_for('admin.verify', job_id=job.id)) }}
+    {% if not pending %}
+    <form method="post" action="{{ url_for('admin.amend', job_id=job.id) }}" class="inline-form" style="margin-top:12px">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <label style="flex:1">Correction needed? Request an amended report (HOD approval required; the original stays unchanged)
+        <input name="reason" required placeholder="Reason for the amendment"></label>
+      <button class="btn btn-sm">Request amendment</button>
     </form>
     {% endif %}
   </div>
 </div>
 {% endif %}
-
-{# ------------------------------------------------------------ PROGRESS #}
-{% if stations %}
-<div class="card">
-  <h2>Testing progress</h2>
-  <table class="tbl compact">
-    <thead><tr><th>Station / logsheet</th><th>Values</th><th>Required missing</th><th>Rules</th><th>Verified</th></tr></thead>
-    {% for s in stations %}
-      <tr><td>{{ s.title }}</td><td>{{ s.n_values }}</td><td>{{ s.missing|length }}</td>
-        <td><span class="pf pass">{{ s.passed }} pass</span> {% if s.failed %}<span class="pf fail">{{ s.failed }} fail</span>{% endif %}</td>
-        <td>{{ '✓ ' ~ (s.verified_at|dt) if s.verified else '—' }}</td></tr>
-    {% endfor %}
-  </table>
-</div>
-{% endif %}
-
-{# ------------------------------------------------------------ REVIEW #}
-{% if job.status in ['UNDER_REVIEW', 'LOCKED_BY_ENGINEER', 'ISSUED', 'RETURNED', 'IN_TESTING'] and results %}
-<div class="card review">
-  <h2>Review - rule checks <small class="muted">({{ results|selectattr('passed','equalto',1)|list|length }} pass,
-    {{ results|selectattr('passed','equalto',0)|list|length }} fail, {{ results|selectattr('passed','none')|list|length }} calculated)</small></h2>
-  <table class="tbl compact">
-    <thead><tr><th></th><th>Station</th><th>Check</th><th>Value</th><th>Limit used</th><th>Formula</th></tr></thead>
-    {% for r in results %}
-      <tr class="{{ 'row-fail' if r.passed == 0 }}"><td>{{ passbadge(r.passed) }}</td><td>{{ STATIONS[r.station].title if r.station in STATIONS else r.station }}</td>
-        <td>{{ r.label }}</td><td>{{ r.value }}</td><td>{{ r.limit_text }}</td><td class="formula">{{ r.formula }}</td></tr>
-    {% endfor %}
-  </table>
-</div>
-
-<div class="card">
-  <h2>Corrections history <small class="muted">({{ corrections|length }})</small></h2>
-  {% if corrections %}
-  <table class="tbl compact">
-    <thead><tr><th>When</th><th>Who</th><th>Field</th><th>Old</th><th>New</th><th>Reason</th></tr></thead>
-    {% for c in corrections %}<tr><td>{{ c.ts|dt }}</td><td>{{ c.full_name }}</td><td class="mono small">{{ c.key }}</td>
-      <td class="mono"><s>{{ c.old_value }}</s></td><td class="mono"><b>{{ c.new_value }}</b></td><td>{{ c.reason }}</td></tr>{% endfor %}
-  </table>
-  {% else %}<p class="muted">No manual corrections - every value is exactly as imported from the logsheets.</p>{% endif %}
-</div>
-
-<details class="card">
-  <summary><b>All readings ({{ readings|length }})</b> - value, imported value and source cell</summary>
-  <table class="tbl compact">
-    <thead><tr><th>Station</th><th>Key</th><th>Value</th><th>Unit</th><th>Imported</th><th>Source</th></tr></thead>
-    {% for r in readings %}<tr class="{{ 'row-corrected' if r.current_value != r.imported_value }}"><td>{{ r.station }}</td><td class="mono small">{{ r.key }}</td>
-      <td class="mono">{{ r.current_value }}</td><td>{{ r.unit }}</td><td class="mono muted">{{ r.imported_value if r.current_value != r.imported_value }}</td>
-      <td class="small">{{ r.file_name }} {{ r.source_cell }}</td></tr>{% endfor %}
-  </table>
-</details>
-{% endif %}
-
-{% if job.status == 'UNDER_REVIEW' %}
-<div class="card preview-card">
-  <h2>Live preview of the filled report</h2>
-  <p class="muted">Rendered from the current data with the CPRI template (not sealed). {% if not converter %}No PDF converter found - DOCX only.{% endif %}</p>
-  <button class="btn" id="load-preview" data-src="{{ url_for('admin.preview', job_id=job.id, fmt='pdf') }}">👁 Generate preview</button>
-  <a class="btn" href="{{ url_for('admin.preview', job_id=job.id, fmt='docx') }}">⬇ Preview DOCX</a>
-  <iframe id="preview-frame" class="preview-frame" hidden></iframe>
-</div>
-<div class="grid2">
-  <form class="card" method="post" action="{{ url_for('admin.issue', job_id=job.id) }}" onsubmit="this.querySelector('button').disabled=true; this.querySelector('button').textContent='Generating & sealing…';">
-    <h2>Approve &amp; issue</h2>
-    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-    <input type="hidden" name="version" value="{{ job.version }}">
-    <p>Freezes a canonical snapshot, generates DOCX + PDF, stores SHA-256 hashes and seals the job.
-       After this the database rejects any change.</p>
-    {% if results|selectattr('passed','equalto',0)|list %}<p class="warn-text">⚠ Some rule checks failed - the report will state "Not within limits" for them.</p>{% endif %}
-    <button class="btn btn-ok btn-lg" id="issue-btn">✓ Approve &amp; Issue report</button>
-  </form>
-  <form class="card" method="post" action="{{ url_for('admin.return_job', job_id=job.id) }}">
-    <h2>Return to engineer</h2>
-    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-    <input type="hidden" name="version" value="{{ job.version }}">
-    <label>Comment (mandatory) <textarea name="comment" rows="3" required></textarea></label>
-    <button class="btn btn-danger">↩ Return (unlock)</button>
-  </form>
-</div>
-{% endif %}
-
-{# ------------------------------------------------------------ ISSUED #}
-{% if rep %}
-<div class="card report-card">
-  <h2>Issued report {{ rep.report_no }}</h2>
-  <div class="dl-row">
-    {% if rep.pdf_path %}<a class="btn btn-primary" target="_blank" href="{{ url_for('admin.download_report', job_id=job.id, fmt='pdf') }}">📄 PDF</a>{% endif %}
-    <a class="btn" href="{{ url_for('admin.download_report', job_id=job.id, fmt='docx') }}">⬇ DOCX</a>
-  </div>
-  <table class="kv small">
-    <tr><th>Issued</th><td>{{ rep.issued_at|dt }}</td></tr>
-    <tr><th>SHA-256 snapshot</th><td class="mono">{{ rep.sha256_snapshot }}</td></tr>
-    <tr><th>SHA-256 DOCX</th><td class="mono">{{ rep.sha256_docx }}</td></tr>
-    <tr><th>SHA-256 PDF</th><td class="mono">{{ rep.sha256_pdf or '—' }}</td></tr>
-  </table>
-  {{ verify_box(url_for('admin.verify', job_id=job.id)) }}
-  <form method="post" action="{{ url_for('admin.amend', job_id=job.id) }}" class="amend-form">
-    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-    <label>Need a correction? Create an amended report (…/A{{ amendments|length + 1 }}) - the original stays unchanged.
-      <input name="reason" required placeholder="Reason for amendment"></label>
-    <button class="btn btn-sm">Create amendment</button>
-  </form>
-</div>
-{% endif %}
 {% if amendments %}
-<div class="card"><h3>Amendments</h3><ul>{% for a in amendments %}<li><a href="{{ url_for('admin.request_detail', job_id=a.id) }}">{{ a.report_no }}</a> {{ badge(a.status) }}</li>{% endfor %}</ul></div>
+<div class="panel"><div class="panel-head"><h2>Amendments</h2></div>
+  <table class="table compact">{% for a in amendments %}<tr><td><a href="{{ url_for('admin.request_detail', job_id=a.id) }}">{{ a.report_no }}</a></td><td>{{ status_badge(a.status) }}</td></tr>{% endfor %}</table></div>
 {% endif %}
 
-{# ------------------------------------------------------------ REQUEST DATA #}
-<details class="card">
-  <summary><b>Customer request &amp; proforma</b></summary>
-  <div class="grid2">
-    <table class="kv small">{% for k, v in form.items() if not k.startswith('pf_') and k != 'drawings' %}<tr><th>{{ k }}</th><td>{{ v }}</td></tr>{% endfor %}
-      <tr><th>drawings</th><td>{% for d in form.drawings or [] %}{{ d.number }} (sh. {{ d.sheet }}, rev {{ d.rev }})<br>{% endfor %}</td></tr></table>
-    <table class="kv small">{% for k, v in form.items() if k.startswith('pf_') %}<tr><th>{{ k[3:] }}</th><td>{{ v }}</td></tr>{% endfor %}</table>
+<details class="panel">
+  <summary class="panel-head" style="cursor:pointer"><h2>Request and proforma</h2></summary>
+  <div class="panel-body split">
+    <table class="kv">{% for k, v in form.items() if not k.startswith('pf_') and k != 'drawings' %}<tr><th>{{ k }}</th><td>{{ v }}</td></tr>{% endfor %}
+      <tr><th>drawings</th><td>{% for d in form.drawings or [] %}{{ d.number }} (sheet {{ d.sheet }}, rev {{ d.rev }})<br>{% endfor %}</td></tr></table>
+    <table class="kv">{% for k, v in form.items() if k.startswith('pf_') %}<tr><th>{{ k[3:] }}</th><td>{{ v }}</td></tr>{% endfor %}</table>
   </div>
-  <h3>Tests requested</h3>
-  <ul class="testlist">{% for c in tests %}<li>{{ TESTS[c].label }} <span class="clause">[{{ TESTS[c].clause }}]</span></li>{% endfor %}</ul>
 </details>
-
-<details class="card">
-  <summary><b>Files ({{ files|length }})</b></summary>
-  <table class="tbl compact">{% for f in files %}<tr><td>{{ f.uploaded_at|dt }}</td><td>{{ f.kind }}</td><td>{{ f.station or '' }}</td>
-    <td><a href="{{ url_for('admin.download_file', job_id=job.id, file_id=f.id) }}">{{ f.original_name }}</a></td><td>{{ f.username }}</td><td class="mono small">{{ f.sha256[:16] }}…</td></tr>{% endfor %}</table>
+<details class="panel">
+  <summary class="panel-head" style="cursor:pointer"><h2>Files ({{ files|length }})</h2></summary>
+  <table class="table compact">{% for f in files %}<tr><td class="nowrap">{{ f.uploaded_at|dt }}</td><td>{{ f.kind }}</td><td>{{ f.station or '' }}</td>
+    <td><a href="{{ url_for('admin.download_file', job_id=job.id, file_id=f.id) }}">{{ f.original_name }}</a></td><td>{{ f.username }}</td><td class="mono small">{{ f.sha256[:16] }}</td></tr>{% endfor %}</table>
 </details>
-
-<details class="card">
-  <summary><b>Activity for this job ({{ history|length }})</b></summary>
-  <table class="tbl compact">{% for h in history %}<tr><td>{{ h.ts|dt }}</td><td>{{ h.username }}</td><td>{{ h.action }}</td><td class="small mono">{{ h.after_json }}</td></tr>{% endfor %}</table>
+<details class="panel">
+  <summary class="panel-head" style="cursor:pointer"><h2>Activity ({{ history|length }})</h2></summary>
+  <table class="table compact">{% for h in history %}<tr><td class="nowrap">{{ h.ts|dt }}</td><td>{{ h.username }}</td><td class="mono">{{ h.action }}</td><td class="mono small" style="word-break:break-all">{{ h.after_json }}</td></tr>{% endfor %}</table>
 </details>
 {% endblock %}

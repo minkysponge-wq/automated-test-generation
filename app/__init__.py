@@ -9,7 +9,8 @@ from datetime import timedelta
 from flask import Flask, flash, jsonify, redirect, render_template, request
 
 import config
-from . import auth, db, fields, workflow
+from . import approval_types  # noqa: F401  (registers the HOD approval types)
+from . import auth, db, fields, notify, workflow
 from .workflow import Conflict, WorkflowError
 
 
@@ -31,7 +32,8 @@ def create_app(test_config=None):
     )
     if test_config:
         app.config.update(test_config)
-    for d in (config.UPLOAD_DIR, config.REPORT_DIR, config.SEALED_DIR, config.PREVIEW_DIR, config.INSTANCE_DIR):
+    for d in (config.UPLOAD_DIR, config.REPORT_DIR, config.SEALED_DIR, config.PREVIEW_DIR, config.INSTANCE_DIR,
+              config.BACKUP_DIR):
         os.makedirs(d, exist_ok=True)
     db.init_db()
     app.teardown_appcontext(db.close_db)
@@ -45,12 +47,23 @@ def create_app(test_config=None):
     # ---- template helpers
     @app.context_processor
     def _inject():
+        from flask import g
+        from .routes.common import ROLE_META
+        unread = 0
+        user = getattr(g, "user", None)
+        if user:
+            try:
+                unread = notify.unread_count(db.get_db(), user)
+            except Exception:
+                unread = 0
         return {
             "csrf_token": auth.csrf_token,
             "STATE_LABELS": workflow.STATE_LABELS,
             "TIMELINE": workflow.TIMELINE,
             "STATIONS": fields.stations(),
             "TESTS": fields.tests(),
+            "ROLE_META": ROLE_META,
+            "unread_count": unread,
         }
 
     @app.template_filter("fromjson")
@@ -119,10 +132,11 @@ def create_app(test_config=None):
             return jsonify(ok=False, error="Not found"), 404
         return render_template("error.html", code=404, message="Page not found."), 404
 
-    from .routes import admin, api, customer, engineer, public
+    from .routes import admin, api, customer, engineer, hod, public
     app.register_blueprint(public.bp)
     app.register_blueprint(customer.bp, url_prefix="/customer")
     app.register_blueprint(engineer.bp, url_prefix="/engineer")
     app.register_blueprint(admin.bp, url_prefix="/admin")
+    app.register_blueprint(hod.bp, url_prefix="/hod")
     app.register_blueprint(api.bp, url_prefix="/api")
     return app

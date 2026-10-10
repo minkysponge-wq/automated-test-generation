@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}System{% endblock %}
+{% block content %}
+<div class="panel">
+  <div class="panel-head"><h2>Status</h2><a class="btn btn-sm" href="{{ url_for('hod.system', check=1) }}">Check AI key</a></div>
+  <div class="panel-body"><table class="kv">
+    <tr><th>PDF export</th><td>{{ status.converter or 'Not available - reports are served as DOCX with a notice' }} <span class="small muted">{{ status.converter_path or '' }}</span></td></tr>
+    <tr><th>AI service (Gemini)</th><td>{{ status.ai }}</td></tr>
+    {% if status.ai_key %}<tr><th>AI key check</th><td>{% if status.ai_key.ok %}<span class="badge green">Valid</span>{% elif status.ai_key.ok is none %}<span class="badge plain">Not configured</span>{% else %}<span class="badge red">Failed</span>{% endif %} {{ status.ai_key.message }}</td></tr>{% endif %}
+    <tr><th>Active report template</th><td>{{ status.template or 'None' }}</td></tr>
+    <tr><th>Field registry</th><td>{{ status.registry_fields }} fields</td></tr>
+    <tr><th>Database</th><td>{{ status.db_size_mb }} MB <span class="small muted mono">{{ status.db_path }}</span></td></tr>
+    <tr><th>Last backup</th><td>{{ status.last_backup|dt if status.last_backup else 'Never' }}</td></tr>
+  </table></div>
+</div>
+<form method="post" class="panel">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <div class="panel-head"><h2>Backup</h2></div>
+  <div class="panel-body inline-form" style="justify-content:space-between">
+    <span class="note">Writes a consistent copy of the database to storage/backups (also available as python manage.py backup).</span>
+    <button class="btn btn-primary btn-sm">Back up now</button>
+  </div>
+</form>
+{% endblock %}

@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+{% block content %}
+<div class="facts">
+  <div><div class="k">Pending approvals</div><div class="v"><a href="{{ url_for('hod.approval_list') }}">{{ kpi.pending }}</a></div></div>
+  <div><div class="k">Reports issued this month</div><div class="v">{{ kpi.issued_month }}</div></div>
+  <div><div class="k">Reports issued in total</div><div class="v">{{ kpi.issued_total }}</div></div>
+  <div><div class="k">Open jobs</div><div class="v">{{ kpi.open_jobs }}</div></div>
+  <div><div class="k">Average turnaround</div><div class="v">{{ kpi.avg_tat_days if kpi.avg_tat_days is not none else '-' }}<span class="small muted"> days</span></div></div>
+</div>
+
+<div class="split">
+  <div class="panel">
+    <div class="panel-head"><h2>Pending approvals</h2><a class="small" href="{{ url_for('hod.approval_list') }}">All approvals</a></div>
+    {% if pending %}
+    <table class="table compact">
+      <thead><tr><th>Request</th><th>From</th><th class="num">Age</th></tr></thead>
+      {% for p in pending[:8] %}<tr class="row-link" data-href="{{ url_for('hod.approval_detail', aid=p.id) }}">
+        <td><a href="{{ url_for('hod.approval_detail', aid=p.id) }}">{{ p.summary }}</a></td><td>{{ p.requester or '-' }}</td><td class="num">{{ age(p.requested_at) }}</td></tr>{% endfor %}
+    </table>
+    {% else %}<div class="empty">Nothing is waiting for your approval.</div>{% endif %}
+  </div>
+  <div class="panel">
+    <div class="panel-head"><h2>Average turnaround per stage</h2></div>
+    <table class="table compact">
+      <thead><tr><th>Stage</th><th class="num">Days</th><th class="num">Jobs</th></tr></thead>
+      {% for s in stages %}<tr><td>{{ s.label }}</td><td class="num">{{ s.days if s.days is not none else '-' }}</td><td class="num">{{ s.n }}</td></tr>{% endfor %}
+    </table>
+  </div>
+</div>
+
+<div class="split">
+  <div class="panel">
+    <div class="panel-head"><h2>Rule failures</h2><span class="small muted">across all jobs</span></div>
+    {% if fails %}
+    <table class="table compact"><thead><tr><th>Check</th><th class="num">Failures</th></tr></thead>
+      {% for f in fails %}<tr><td>{{ f.label }}</td><td class="num">{{ f.n }}</td></tr>{% endfor %}</table>
+    {% else %}<div class="empty">No failed rule checks.</div>{% endif %}
+  </div>
+  <div class="panel">
+    <div class="panel-head"><h2>System status</h2><a class="small" href="{{ url_for('hod.system') }}">Details</a></div>
+    <div class="panel-body"><table class="kv">
+      <tr><th>PDF export</th><td>{{ status.converter or 'Not available - reports are served as DOCX' }}</td></tr>
+      <tr><th>AI service</th><td>{{ status.ai }}</td></tr>
+      <tr><th>Active report template</th><td>{{ status.template or 'None' }}</td></tr>
+      <tr><th>Database size</th><td>{{ status.db_size_mb }} MB</td></tr>
+      <tr><th>Last backup</th><td>{{ status.last_backup|dt if status.last_backup else 'Never' }}</td></tr>
+    </table></div>
+  </div>
+</div>
+{% endblock %}

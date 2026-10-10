@@ -1,0 +1,70 @@
+# Demo customer request (A.P. Transformers, Sl. No. 1098) - values from the scanned request form + proforma.
+# Used by seed.py, the request Excel sample and the AI request-reader accuracy test.
+customer_name: M/s. A.P. Transformers
+customer_address: SP24 & 95H/1(SP), Ambattur Indl. Estate, Chennai-600058
+samples: Three Phase Distribution Transformer
+rating: 250 kVA, 11000 / 433 V
+sample_description: 250 kVA, 11 kV / 433 V, 3-phase, oil-immersed, ONAN, outdoor distribution
+  transformer
+sample_type: Outdoor, Non-sealed, Oil immersed
+serial_numbers: '1098'
+manufacturer: M/s. A.P. Transformers, SP24 & 95H/1(SP), Ambattur Indl. Estate, Chennai-600058
+drawings:
+- number: APT/250-11/001
+  sheet: 1 of 1
+  rev: '0'
+- number: APT/250-11/001B
+  sheet: 1 of 1
+  rev: '0'
+customer_requirement: Nil
+criteria: 'IS 1180 (Part 1): 2014 (with Amendment No.4: March 2021)'
+num_samples: '1'
+take_back: 'Yes'
+tests_details: 'Type tests, all routine tests and special tests as per IS 1180 (Part
+  1): 2014'
+mounting_instructions: Nil
+witness_customer: Mr. Vivekanand Krishna
+witness_other: None
+dispatch_to: M/s. A.P. Transformers, Ambattur Indl. Estate, Chennai-600058
+dispatch_mode: Courier
+additional_reports: '0'
+msme: 'Yes'
+soc_required: 'Yes'
+decision_rule: (i)
+pf_sealing: Non-sealed
+pf_insulation: Oil immersed
+pf_location: Outdoor
+pf_kva: '250'
+pf_hv_v: '11000'
+pf_lv_v: '433'
+pf_um: '12'
+pf_hv_li: '75'
+pf_hv_ac: '28'
+pf_lv_li: '-'
+pf_lv_ac: '3'
+pf_impedance: '4.50'
+pf_phases: '3'
+pf_freq: '50'
+pf_vector_group: Dyn11
+pf_eel: EEL-1
+pf_cooling: ONAN
+pf_tap_plus: '5'
+pf_tap_minus: '10'
+pf_tap_step: '2.5'
+pf_num_taps: '7'
+pf_principal_tap: '3'
+pf_nll: '385'
+pf_ll: '2250'
+pf_max_tl50: '980'
+pf_max_tl100: '2930'
+pf_noise: '-'
+pf_oil_volume: '460'
+pf_mfg: 10/2025
+pf_winding_material: Copper
+pf_coil_shape: Circular
+pf_core: CRGO
+pf_lv_winding: Helical / Spiral
+pf_hv_winding: Crossover
+pf_tank: Plain
+pf_gtr_top_oil: '35'
+pf_gtr_winding: '40'

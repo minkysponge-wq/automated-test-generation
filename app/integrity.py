@@ -46,10 +46,19 @@ def verify_report(conn, report):
             continue
         ok = os.path.exists(path) and sha256_file(path) == report[hash_key]
         checks.append((label, ok))
-    live = report_mod.build_snapshot(conn, report["job_id"], for_verify=True)
+    live = report_mod.build_snapshot(conn, report["job_id"])
     sealed = json.loads(report["snapshot_json"])
-    # compare only the data portion (issue metadata is added at sealing time)
+    # compare only the data portion (template and issue metadata are added at sealing time)
     checks.append(("Database matches sealed snapshot", canonical_json(live["data"]) == canonical_json(sealed["data"])))
+    keys = report.keys() if hasattr(report, "keys") else report
+    if "template_id" in keys and report["template_id"]:
+        from .reporting import templates as T
+        tpl = T.get(conn, report["template_id"])
+        ok = bool(tpl) and tpl["compiled_sha"] == report["template_sha"]
+        if ok and tpl["compiled_path"] and os.path.exists(T._abs(tpl["compiled_path"])):
+            ok = sha256_file(T._abs(tpl["compiled_path"])) == report["template_sha"]
+        checks.append((f"Report template v{report['template_version']} unchanged", ok))
     job = conn.execute("SELECT is_sealed FROM requests WHERE id=?", (report["job_id"],)).fetchone()
     checks.append(("Job sealed flag set", bool(job and job["is_sealed"])))
     return {"ok": all(ok for _, ok in checks), "checks": checks}
+

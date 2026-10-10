@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% set nav = g.role ~ '.notifications' %}
+{% block title %}Notifications{% endblock %}
+{% block content %}
+<div class="panel">
+  {% if rows %}
+  <table class="table">
+    <thead><tr><th style="width:150px">Received</th><th>Message</th><th></th></tr></thead>
+    <tbody>
+    {% for n in rows %}
+      <tr><td class="nowrap">{{ n.created_at|dt }}</td><td>{% if not n.read_at %}<strong>{{ n.message }}</strong>{% else %}{{ n.message }}{% endif %}</td>
+        <td class="nowrap">{% if n.link %}<a href="{{ n.link }}">Open</a>{% endif %}</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}<div class="empty">No notifications.</div>{% endif %}
+</div>
+{% endblock %}

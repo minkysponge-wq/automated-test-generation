@@ -1,156 +1,221 @@
 {% extends "base.html" %}
-{% from "_macros.html" import badge, passbadge with context %}
+{% from "components/macros.html" import status_badge, result_badge with context %}
+{% set nav = 'engineer.dashboard' %}
 {% block title %}{{ job.sample_code }}{% endblock %}
+{% block heading %}{{ job.sample_code }} <span class="sub">{{ job.report_no }} - {{ form.customer_name }}, {{ form.rating }}, serial {{ form.serial_numbers }}</span>{% endblock %}
+{% block actions %}{{ status_badge(job.status) }}{% endblock %}
 {% block content %}
-<div class="page-head">
-  <div>
-    <h1>{{ job.sample_code }} <small class="mono muted">{{ job.report_no }}</small> {{ badge(job.status) }}</h1>
-    <div class="muted">{{ form.customer_name }} · {{ form.rating }} · Sl. No. {{ form.serial_numbers }} ·
-      Team: {% for e in engineers %}{{ e.full_name }}{% if e.role == 'responsible' %} (responsible){% endif %}{% if not loop.last %}, {% endif %}{% endfor %}</div>
+<div data-poll="{{ url_for('api.job_status', job_id=job.id) }}" data-version="{{ job.version }}">
+  {% if job.status == 'RETURNED' %}<div class="callout warn"><strong>Returned for corrections:</strong> {{ job.return_comment }}</div>{% endif %}
+  {% if not editable %}<div class="callout">This job is <strong>{{ STATE_LABELS[job.status] }}</strong>. Readings are read-only{% if job.is_sealed %}; the report has been issued and sealed{% endif %}.</div>{% endif %}
+  <p class="note poll-note"></p>
+</div>
+
+{% if editable and ai_on %}
+<div class="panel reader" data-url="{{ url_for('engineer.read_document', job_id=job.id) }}" data-station="auto">
+  <div class="panel-body inline-form">
+    <label style="flex:1;margin:0">Document with several logsheets (multi-page PDF or multi-sheet workbook) - each part is sorted to its test
+      <input type="file" class="read-file" accept=".pdf,.xlsx,.xls"></label>
+    <button type="button" class="btn btn-sm read-btn">Read all logsheets</button>
+    <p class="note small read-status" style="width:100%;margin:0"></p>
   </div>
-  <a class="btn" href="{{ url_for('engineer.dashboard') }}">← My jobs</a>
 </div>
-
-<div class="statusbar card" data-poll="{{ url_for('api.job_status', job_id=job.id) }}" data-version="{{ job.version }}">
-  {% if job.status == 'RETURNED' %}<div class="flash flash-warning"><b>Returned by admin:</b> {{ job.return_comment }}</div>{% endif %}
-  {% if not editable %}<div class="flash flash-info">🔒 This job is <b>{{ STATE_LABELS[job.status] }}</b> - readings are read-only{% if job.is_sealed %} (sealed by report issue){% endif %}.</div>{% endif %}
-  <div class="poll-note muted"></div>
-</div>
-
-<nav class="tabs">
+{% endif %}
+<nav class="tabs" aria-label="Tests">
   {% for s in stations %}
-    <a href="{{ url_for('engineer.job', job_id=job.id, station=s.station) }}" class="tab {{ 'active' if s.station == active }}">
-      {{ s.title }}
-      {% if s.verified %}<span class="pill ok">✓ verified</span>
-      {% elif s.n_values == 0 %}<span class="pill">no data</span>
-      {% elif s.missing %}<span class="pill warn">{{ s.missing|length }} missing</span>{% endif %}
-      {% if s.failed %}<span class="pill bad">{{ s.failed }} fail</span>{% endif %}
-    </a>
+    <a href="{{ url_for('engineer.job', job_id=job.id, station=s.station) }}" class="{{ 'active' if s.station == active }}">{{ s.title }}
+      {%- if s.verified %}<span class="badge green">Verified</span>
+      {%- elif s.ai_pending %}<span class="badge amber">{{ s.ai_pending }} to confirm</span>
+      {%- elif s.n_values == 0 %}<span class="badge plain">No data</span>
+      {%- elif s.missing %}<span class="badge amber">{{ s.missing|length }} missing</span>{% endif %}
+      {%- if s.failed %}<span class="badge red">{{ s.failed }} fail</span>{% endif %}</a>
   {% endfor %}
 </nav>
 
 {% for s in stations if s.station == active %}
-<section class="card station">
-  <div class="station-steps">
-    <div class="step">
-      <span class="stepno">1</span>
-      <div><b>Download the Excel logsheet</b><br><small class="muted">Header (series no., sample code, customer, rating, serial, date) is pre-filled.</small></div>
-      <a class="btn btn-sm" href="{{ url_for('engineer.template', job_id=job.id, station=s.station) }}">⬇ {{ STATIONS[s.station].file }}</a>
+<div class="panel">
+  <div class="station-actions">
+    <div>
+      <div class="t">1. Logsheet template</div>
+      <p class="note">Excel logsheet with the job header filled in, generated from the field registry.</p>
+      <a class="btn btn-sm" href="{{ url_for('engineer.template', job_id=job.id, station=s.station) }}">Download {{ STATIONS[s.station].file }}</a>
     </div>
-    <div class="step">
-      <span class="stepno">2</span>
-      <div><b>Upload the filled logsheet</b><br><small class="muted">Values are found by placeholder / defined name, not by cell position.</small></div>
+    <div>
+      <div class="t">2. Upload readings</div>
       {% if editable %}
-      <form method="post" enctype="multipart/form-data" action="{{ url_for('engineer.upload', job_id=job.id, station=s.station) }}" class="upload-form">
+      <form method="post" enctype="multipart/form-data" action="{{ url_for('engineer.upload', job_id=job.id, station=s.station) }}" class="inline-form upload-form">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-        <input type="file" name="file" accept=".xlsx" required>
-        <button class="btn btn-sm btn-primary">⬆ Upload &amp; import</button>
+        <input type="file" name="file" accept=".xlsx" required aria-label="Filled Excel logsheet" style="flex:1;margin:0">
+        <button class="btn btn-sm btn-primary">Import Excel</button>
       </form>
-      {% else %}<span class="muted">locked</span>{% endif %}
+      <div class="reader" data-url="{{ url_for('engineer.read_document', job_id=job.id) }}" data-station="{{ s.station }}"
+           data-file="{{ last_files.get(s.station, '') }}" style="margin-top:10px">
+        <div class="small" style="font-weight:500">Or read any logsheet document: scanned PDF, photo or Excel in any layout</div>
+        <input type="file" class="read-file" accept=".pdf,.jpg,.jpeg,.png,.xlsx,.xls,.csv" aria-label="Logsheet document" style="width:100%;margin:4px 0 0">
+        <div class="inline-form" style="margin-top:6px">
+          <button type="button" class="btn btn-sm read-btn">Read document</button>
+          <button type="button" class="btn btn-sm reread-btn" {% if not last_files.get(s.station) %}disabled{% endif %}>Re-read with higher accuracy</button>
+        </div>
+        <p class="note small read-status">{{ ai_notice + '.' if ai_notice else '' }}</p>
+      </div>
+      {% else %}<p class="note">Locked.</p>{% endif %}
     </div>
-    <div class="step">
-      <span class="stepno">3</span>
-      <div><b>Check, correct (with reason) and verify</b><br><small class="muted">{{ s.n_values }} values · {{ s.passed }} pass · {{ s.failed }} fail{% if s.missing %} · {{ s.missing|length }} required missing{% endif %}</small></div>
+    <div>
+      <div class="t">3. Check and verify</div>
+      <p class="note">{{ s.n_values }} values, {{ s.passed }} pass, {{ s.failed }} fail{% if s.missing %}, {{ s.missing|length }} required missing{% endif %}{% if s.ai_pending %}, {{ s.ai_pending }} AI values to confirm{% endif %}.</p>
       {% if editable %}
-      <form method="post" action="{{ url_for('engineer.verify', job_id=job.id, station=s.station) }}">
+      <div class="inline-form">
+        {% if s.ai_pending %}
+        <form method="post" action="{{ url_for('engineer.confirm_ai', job_id=job.id) }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="station" value="{{ s.station }}">
+          <button class="btn btn-sm">Confirm all AI values</button></form>
+        {% endif %}
+        <form method="post" action="{{ url_for('engineer.verify', job_id=job.id, station=s.station) }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button class="btn btn-sm {{ 'btn-primary' if not s.verified and not s.missing and s.n_values }}" {% if s.missing or s.n_values == 0 or s.ai_pending %}disabled title="Fill and confirm all required values first"{% endif %}>
+            {{ 'Verified - verify again' if s.verified else 'Mark verified' }}</button>
+        </form>
+      </div>
+      {% if s.missing and not s.ai_pending %}
+      <form method="post" action="{{ url_for('engineer.verify', job_id=job.id, station=s.station) }}" style="margin-top:10px"
+            data-confirm-title="Verify with missing values"
+            data-confirm="{{ s.missing|length }} required value(s) stay empty and will show as blank in the report. Your reason is recorded in the activity log.">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-        <button class="btn btn-sm {{ 'btn-ok' if not s.missing else '' }}" {% if s.missing or s.n_values == 0 %}disabled title="Fill all required values first"{% endif %}>
-          {{ '✓ Verified - verify again' if s.verified else 'Mark verified' }}</button>
+        <label class="small">Values not in the logsheet? Reason
+          <input type="text" name="missing_reason" required minlength="5" placeholder="e.g. not measured in this test series"></label>
+        <button class="btn btn-sm">Verify with {{ s.missing|length }} missing value(s)</button>
       </form>
+      {% endif %}
       {% endif %}
     </div>
   </div>
-
-  {% if import_summary and import_summary.station == s.station %}
-  <div class="import-summary">
-    <b>Last import:</b> {{ import_summary.inserted }} new, {{ import_summary.updated }} changed, {{ import_summary.unchanged }} unchanged.
-    {% if import_summary.unfilled or import_summary.missing %}<br><span class="warn-text">Empty required placeholders: {{ (import_summary.unfilled + import_summary.missing)|join(', ') }}</span>{% endif %}
-    {% if import_summary.non_numeric %}<br><span class="bad-text">Non-numeric: {{ import_summary.non_numeric|join(', ') }}</span>{% endif %}
-  </div>
+  {% if last_import and last_import.station == s.station %}
+  <div class="panel-body small muted" style="border-bottom:1px solid var(--border)">Last import ({{ last_import.source }}): {{ last_import.inserted }} new, {{ last_import.updated }} changed, {{ last_import.unchanged }} unchanged.</div>
   {% endif %}
 
   {% set st_results = results|selectattr('station', 'equalto', s.station)|list %}
   {% if st_results %}
-  <details class="rules" open>
-    <summary><b>Rule checks &amp; calculations</b> ({{ st_results|selectattr('passed','equalto',1)|list|length }} pass,
-      {{ st_results|selectattr('passed','equalto',0)|list|length }} fail)</summary>
-    <table class="tbl compact">
-      <thead><tr><th></th><th>Check</th><th>Value</th><th>Limit</th><th>Formula</th></tr></thead>
-      {% for r in st_results %}
-        <tr class="{{ 'row-fail' if r.passed == 0 }}"><td>{{ passbadge(r.passed) }}</td><td>{{ r.label }}</td><td>{{ r.value }}</td><td>{{ r.limit_text }}</td><td class="formula">{{ r.formula }}</td></tr>
-      {% endfor %}
-    </table>
-  </details>
+  <div class="panel-head"><h2>Rule checks and calculations</h2>
+    <span class="small muted">{{ st_results|selectattr('passed', 'equalto', 1)|list|length }} pass, {{ st_results|selectattr('passed', 'equalto', 0)|list|length }} fail</span></div>
+  <div class="table-wrap" style="max-height:320px">
+  <table class="table compact">
+    <thead><tr><th>Result</th><th>Check</th><th class="num">Value</th><th>Limit</th><th>Formula</th></tr></thead>
+    <tbody>
+    {% for r in st_results %}
+      <tr class="{{ 'is-fail' if r.passed == 0 }}"><td>{{ result_badge(r.passed) }}</td><td>{{ r.label }}</td><td class="num">{{ r.value }}</td><td>{{ r.limit_text }}</td><td class="formula">{{ r.formula }}</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
   {% endif %}
 
-  {% set flds = station_fields(s.station) %}
-  {% set sections = [] %}{% for f in flds %}{% if f.section not in sections %}{% set _ = sections.append(f.section) %}{% endif %}{% endfor %}
-  {% for sec in sections %}
-    {% set sf = flds|selectattr('section', 'equalto', sec)|list %}
-    {% set nvals = sf|selectattr('key', 'in', readings)|list|length %}
-    <details class="readings" {% if nvals or loop.index <= 3 %}open{% endif %}>
-      <summary>{{ sec }} <small class="muted">({{ nvals }}/{{ sf|length }})</small></summary>
-      <table class="tbl compact grid">
-        <thead><tr><th>Field</th><th>Value</th><th>Unit</th><th>Imported</th><th>Source cell</th><th>Key</th><th></th></tr></thead>
-        <tbody>
-        {% for f in sf %}{% set r = readings.get(f.key) %}{% set req = is_required(f, tests) %}
-          <tr class="{% if req and not (r and r.current_value) %}row-missing{% endif %} {% if r and r.current_value != r.imported_value %}row-corrected{% endif %}"
-              data-key="{{ f.key }}">
-            <td>{{ f.label }}{% if req %} <i class="req">*</i>{% endif %}</td>
-            <td class="val mono">{{ r.current_value if r else '' }}</td>
-            <td>{{ f.unit }}</td>
-            <td class="mono muted">{% if r and r.current_value != r.imported_value %}<s>{{ r.imported_value }}</s>{% endif %}</td>
-            <td class="mono small">{% if r %}<span title="{{ r.file_name }}">{{ r.source_cell }}</span>{% endif %}</td>
-            <td class="mono small muted">{{ f.key }}</td>
-            <td class="nowrap">
-              {% if r and editable %}<button type="button" class="btn btn-xs js-edit" data-url="{{ url_for('engineer.correct', job_id=job.id, reading_id=r.id) }}"
-                    data-version="{{ r.version }}" data-label="{{ f.label }}" data-value="{{ r.current_value }}" data-type="{{ f.type }}">Edit</button>{% endif %}
-              {% if r and corr_counts.get(f.key) %}<button type="button" class="btn btn-xs js-history" data-url="{{ url_for('engineer.history', job_id=job.id, reading_id=r.id) }}">
-                {{ corr_counts[f.key] }} change{{ 's' if corr_counts[f.key] > 1 }}</button>{% endif %}
-            </td>
-          </tr>
-        {% endfor %}
-        </tbody>
-      </table>
-    </details>
-  {% endfor %}
-
-  {% set su = uploads|selectattr('station', 'equalto', s.station)|list %}
-  {% if su %}
-  <details class="uploads"><summary>Uploaded files ({{ su|length }}) - stored immutably with SHA-256</summary>
-    <table class="tbl compact">{% for u in su %}<tr><td>{{ u.uploaded_at|dt }}</td><td>{{ u.original_name }}</td><td>{{ u.username }}</td><td class="mono small">{{ u.sha256[:16] }}…</td></tr>{% endfor %}</table>
-  </details>
-  {% endif %}
-</section>
+  {% set st_rows = readings.values()|selectattr('station', 'equalto', s.station)|list %}
+  {% set ai_rows = st_rows|selectattr('source', 'equalto', 'ai')|list %}
+  {% set nsc = namespace(n=0) %}{% for r in ai_rows if (r.ai_confidence or 0) < 0.8 %}{% set nsc.n = nsc.n + 1 %}{% endfor %}
+  <div class="panel-head"><h2>Readings</h2>
+    <div class="inline-form">
+      {% if ai_rows %}<span class="small muted">{{ ai_rows|length }} read automatically, {{ nsc.n }} need checking, {{ s.missing|length }} not found.</span>{% endif %}
+      {% if last_files.get(s.station) %}<button type="button" class="btn btn-sm js-source" data-url="{{ url_for('engineer.file_view', job_id=job.id, file_id=last_files[s.station]) }}">Show source document</button>{% endif %}
+      {% if editable and s.ai_pending %}
+      <form method="post" action="{{ url_for('engineer.clear_ai', job_id=job.id) }}" data-confirm-title="Clear auto-filled values"
+            data-confirm="All automatically read values of this test that nobody has confirmed yet will be removed. Confirmed and corrected values stay.">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="station" value="{{ s.station }}">
+        <button class="btn btn-sm">Clear auto-filled values</button></form>
+      <form method="post" action="{{ url_for('engineer.confirm_ai', job_id=job.id) }}" data-confirm-title="Confirm all AI values"
+            data-confirm="All {{ s.ai_pending }} automatically read values of this test will be marked as checked by you. Make sure you have compared them with the source document.">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="station" value="{{ s.station }}">
+        <button class="btn btn-sm btn-primary">Confirm all ({{ s.ai_pending }})</button></form>
+      {% endif %}
+    </div></div>
+  <div class="table-wrap">
+  <table class="table compact" id="readings">
+    <thead><tr><th>Field</th><th class="num">Value</th><th>Unit</th><th>Imported</th><th>Source</th><th></th></tr></thead>
+    <tbody>
+    {% set flds = station_fields(s.station) %}
+    {% set ns = namespace(section=None) %}
+    {% for f in flds %}{% set r = readings.get(f.key) %}{% set req = is_required(f, tests) %}
+      {% if f.section != ns.section %}{% set ns.section = f.section %}<tr class="section-head"><td colspan="6">{{ f.section }}</td></tr>{% endif %}
+      {% if r or req %}
+      <tr class="{% if req and not (r and r.current_value) %}is-missing{% endif %} {% if r and r.source == 'ai' and not r.verified_by %}is-ai{% endif %}" data-key="{{ f.key }}">
+        <td>{{ f.label }}{% if req %} <span class="req">*</span>{% endif %}
+          {% if r and r.source == 'ai' and not r.verified_by %}<div class="small" style="color:var(--amber)">{{ 'Please check' if (r.ai_confidence or 0) < 0.8 else 'Read automatically' }} - AI-extracted, needs verification ({{ '%.0f'|format((r.ai_confidence or 0) * 100) }}% confidence)</div>
+          {% elif req and not (r and r.current_value) %}<div class="small muted">Not found</div>{% endif %}</td>
+        <td class="val num {{ 'corrected' if r and r.current_value != r.imported_value }}">{{ r.current_value if r else '' }}</td>
+        <td>{{ f.unit }}</td>
+        <td class="val">{% if r and r.current_value != r.imported_value %}<span class="was">{{ r.imported_value }}</span>{% endif %}</td>
+        <td class="small muted nowrap">{% if r %}{% if r.source_file_id and r.source == 'ai' %}<button type="button" class="btn-link small js-goto"
+              data-url="{{ url_for('engineer.file_view', job_id=job.id, file_id=r.source_file_id) }}" data-src="{{ r.source_cell }}">{{ r.source_cell }}</button>{% else %}{{ r.source_cell }}{% endif %}{% endif %}</td>
+        <td class="nowrap">
+          {% if r and editable %}<button type="button" class="btn btn-xs js-edit" data-url="{{ url_for('engineer.correct', job_id=job.id, reading_id=r.id) }}"
+                data-version="{{ r.version }}" data-label="{{ f.label }}" data-value="{{ r.current_value }}">Correct</button>
+            {% if r.source == 'ai' and not r.verified_by %}
+            <form method="post" action="{{ url_for('engineer.confirm_ai', job_id=job.id) }}" style="display:inline">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="reading_id" value="{{ r.id }}">
+              <input type="hidden" name="back_station" value="{{ s.station }}"><button class="btn btn-xs">Confirm</button></form>
+            {% endif %}{% endif %}
+          {% if r and corr_counts.get(f.key) %}<button type="button" class="btn btn-xs js-history" data-url="{{ url_for('engineer.history', job_id=job.id, reading_id=r.id) }}">History ({{ corr_counts[f.key] }})</button>{% endif %}
+        </td>
+      </tr>
+      {% endif %}
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  <div class="panel-body small muted">Optional fields without a value are not listed. Uploaded files are stored unchanged with their SHA-256.</div>
+</div>
 {% endfor %}
 
-<section class="card lockbox">
-  {% set all_ok = stations|selectattr('verified')|list|length == stations|length %}
-  <div>
-    <h3>Lock job for review</h3>
-    <p class="muted">When every test is verified, lock the job. You cannot edit afterwards unless the admin returns it.</p>
+<div class="panel">
+  <div class="panel-head"><h2>Lock job for review</h2>{% set all_ok = stations|selectattr('verified')|list|length == stations|length %}
+    {% if job.status == 'IN_TESTING' %}
+    <form method="post" action="{{ url_for('engineer.lock', job_id=job.id) }}"
+          data-confirm="Locking freezes all readings of this job. You will not be able to edit them unless the Test In-charge returns the job. Lock and send for technical review?"
+          data-confirm-title="Lock job {{ job.sample_code }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="version" value="{{ job.version }}">
+      <button class="btn btn-primary btn-sm" id="lock-job" {% if not all_ok %}disabled title="Verify every test first"{% endif %}>Lock job</button>
+    </form>
+    {% endif %}
   </div>
-  {% if job.status == 'IN_TESTING' %}
-  <form method="post" action="{{ url_for('engineer.lock', job_id=job.id) }}" onsubmit="return confirm('Lock this job and send it for review?');">
-    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-    <input type="hidden" name="version" value="{{ job.version }}" class="js-job-version">
-    <button class="btn btn-primary" id="lock-job" {% if not all_ok %}disabled title="Verify every test first"{% endif %}>🔒 Lock job for review</button>
-  </form>
-  {% else %}
-    <span>{{ badge(job.status) }}</span>
-  {% endif %}
-</section>
+  <div class="panel-body">
+    {% if job.status == 'IN_TESTING' and not all_ok %}
+    {% set unconfirmed = stations|sum(attribute='ai_pending') %}
+    {% if unconfirmed %}
+    <p class="note">{{ unconfirmed }} automatically read value(s) still need confirming (use Confirm all on each test) before the job can be locked.</p>
+    {% else %}
+    <p class="note">Not every test is verified. If the remaining values are not in the logsheets, lock anyway: missing values stay blank in the report and your reason is recorded.</p>
+    <form method="post" action="{{ url_for('engineer.lock', job_id=job.id) }}" class="inline-form"
+          data-confirm-title="Lock job {{ job.sample_code }} with missing values"
+          data-confirm="Tests not yet verified will be verified as they are, missing values stay blank in the report, and the readings are frozen for technical review.">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="version" value="{{ job.version }}">
+      <input type="text" name="missing_reason" required minlength="5" placeholder="Reason, e.g. values not recorded in the logsheets" style="flex:1;margin:0">
+      <button class="btn btn-primary btn-sm" id="lock-missing">Lock with missing values</button>
+    </form>
+    {% endif %}
+    {% else %}<p class="note">All tests must be verified before the job can be locked.</p>{% endif %}
+  </div>
+</div>
 
-<dialog id="edit-dialog" class="dialog">
-  <form method="dialog" id="edit-form">
-    <h3>Correct value</h3>
-    <p id="edit-label" class="muted"></p>
-    <label>New value <input id="edit-value" required></label>
-    <label>Reason for correction (mandatory) <textarea id="edit-reason" rows="2" required placeholder="e.g. transcription error - value re-read from instrument display"></textarea></label>
-    <div class="dialog-err bad-text"></div>
-    <div class="actions"><button type="button" class="btn" id="edit-cancel">Cancel</button><button type="submit" class="btn btn-primary" id="edit-save">Save correction</button></div>
+<aside class="drawer hidden" id="source-drawer" aria-label="Source document">
+  <div class="panel-head"><h2 id="drawer-title">Source document</h2><button type="button" class="btn btn-sm" id="drawer-close">Close</button></div>
+  <div class="source-view" id="drawer-body"></div>
+</aside>
+<dialog id="edit-dialog" aria-labelledby="edit-title">
+  <form id="edit-form" method="dialog">
+    <div class="dialog-head" id="edit-title">Correct value</div>
+    <div class="dialog-body">
+      <p class="muted" id="edit-label"></p>
+      <label>New value <input id="edit-value" required></label>
+      <label>Reason for the correction <textarea id="edit-reason" rows="2" required placeholder="For example: transcription error, value re-read from the instrument display"></textarea></label>
+      <span class="error-text dialog-err"></span>
+    </div>
+    <div class="dialog-foot"><button type="button" class="btn" id="edit-cancel">Cancel</button><button type="submit" class="btn btn-primary" id="edit-save">Save correction</button></div>
   </form>
 </dialog>
-<dialog id="history-dialog" class="dialog"><h3>Change history</h3><div id="history-body"></div>
-  <div class="actions"><button class="btn" onclick="this.closest('dialog').close()">Close</button></div></dialog>
+<dialog id="history-dialog" aria-labelledby="history-title">
+  <div class="dialog-head" id="history-title">Change history</div>
+  <div class="dialog-body" id="history-body"></div>
+  <div class="dialog-foot"><button class="btn" type="button" onclick="this.closest('dialog').close()">Close</button></div>
+</dialog>
 {% endblock %}
