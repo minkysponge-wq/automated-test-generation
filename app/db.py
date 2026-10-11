@@ -53,7 +53,8 @@ def tx(conn):
 
 
 _initialised = set()
-MIGRATIONS = ["ALTER TABLE ai_extractions ADD COLUMN tokens INTEGER"]
+MIGRATIONS = ["ALTER TABLE ai_extractions ADD COLUMN tokens INTEGER",
+              "CREATE INDEX IF NOT EXISTS ix_audit_ts ON audit_log(ts)"]   # activity log date filter
 
 
 def init_db_conn(conn, path=None, force=False):

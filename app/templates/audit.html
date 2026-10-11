@@ -1,38 +1,59 @@
 {% extends "base.html" %}
 {% set nav = 'activity' %}
 {% block title %}Activity log{% endblock %}
-{% block heading %}Activity log <span class="sub">append-only, hash-chained</span>{% endblock %}
+{% block heading %}Activity log <span class="sub">read-only, hash-chained</span>{% endblock %}
 {% block actions %}
-  {% if can_verify %}<button class="btn btn-sm" id="verify-chain" data-url="{{ url_for('hod.audit_verify') }}">Verify chain</button>{% endif %}
+  {% if can_verify %}<button class="btn btn-sm" id="verify-chain" data-url="{{ url_for(portal_role ~ '.audit_verify') }}">Verify log integrity</button>{% endif %}
   <a class="btn btn-sm" href="{{ url_for(portal_role ~ '.audit_csv', **args) }}">Export CSV</a>
 {% endblock %}
 {% block content %}
 <div id="chain-result"></div>
 <div class="panel">
   <form class="searchbar" method="get">
-    <input name="user" value="{{ args.get('user', '') }}" placeholder="User" aria-label="User">
-    <select name="role" aria-label="Role"><option value="">All roles</option>{% for r in ['customer', 'engineer', 'admin', 'hod'] %}<option value="{{ r }}" {% if args.get('role') == r %}selected{% endif %}>{{ ROLE_META[r].title }}</option>{% endfor %}</select>
-    <input name="action" value="{{ args.get('action', '') }}" placeholder="Action, e.g. reading.correct" aria-label="Action">
-    <input name="entity" value="{{ args.get('entity', '') }}" placeholder="Entity" aria-label="Entity" style="width:110px">
-    <input name="entity_id" value="{{ args.get('entity_id', '') }}" placeholder="Id" aria-label="Entity id" style="width:70px">
-    <input type="date" name="from" value="{{ args.get('from', '') }}" aria-label="From date">
-    <input type="date" name="to" value="{{ args.get('to', '') }}" aria-label="To date">
+    <label class="small">From<input type="date" name="from" value="{{ args.get('from', '') }}"></label>
+    <label class="small">To<input type="date" name="to" value="{{ args.get('to', '') }}"></label>
+    <label class="small">User<input name="user" value="{{ args.get('user', '') }}" placeholder="Username" style="width:130px"></label>
+    <label class="small">Role<select name="role"><option value="">All roles</option>{% for r in ['customer', 'engineer', 'admin', 'hod'] %}<option value="{{ r }}" {% if args.get('role') == r %}selected{% endif %}>{{ ROLE_META[r].title }}</option>{% endfor %}</select></label>
+    <label class="small">Action<select name="type"><option value="">All actions</option>{% for code, label in types %}<option value="{{ code }}" {% if args.get('type') == code %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></label>
+    <label class="small">Sample or report no.<input name="q" value="{{ args.get('q', '') }}" placeholder="HVD25S0847 or CPRIBLRSCL25T1654" style="width:230px"></label>
+    {% for k in ['action', 'entity', 'entity_id'] if args.get(k) %}<input type="hidden" name="{{ k }}" value="{{ args[k] }}">{% endfor %}
     <button class="btn btn-primary btn-sm">Filter</button>
-    <a class="btn btn-sm" href="{{ url_for(portal_role ~ '.audit_log') }}">Clear</a>
+    <a class="btn btn-sm" href="{{ url_for(portal_role ~ '.audit_log') }}">Last 7 days</a>
+    <a class="btn btn-sm" href="{{ url_for(portal_role ~ '.audit_log', all=1) }}">All dates</a>
   </form>
   <div class="table-wrap">
   <table class="table compact">
-    <thead><tr><th class="num">#</th><th>Time (IST)</th><th>User</th><th>Role</th><th>Action</th><th>Entity</th><th>Before / after</th><th>IP</th><th>Row hash</th></tr></thead>
+    <thead><tr><th>Time (IST)</th><th>User</th><th>Role</th><th>Action</th><th>Reference</th><th>Detail</th></tr></thead>
     <tbody>
-    {% for r in rows %}
-      <tr><td class="num">{{ r.id }}</td><td class="nowrap">{{ r.ts|dt }}</td><td>{{ r.username or '-' }}</td><td>{{ r.role or '' }}</td>
-        <td class="mono">{{ r.action }}</td><td class="nowrap">{{ r.entity_type or '' }} {{ r.entity_id or '' }}</td>
-        <td class="mono small" style="max-width:380px;word-break:break-all">{% if r.before_json %}<span class="muted">{{ r.before_json }}</span><br>{% endif %}{{ r.after_json or '' }}</td>
-        <td class="small">{{ r.ip or '' }}</td><td class="mono small" title="{{ r.row_hash }}">{{ r.row_hash[:10] }}</td></tr>
-    {% else %}<tr><td colspan="9" class="empty">No matching entries.</td></tr>{% endfor %}
+    {% for it in items %}{% set r = it.row %}
+      <tr class="log-row" data-detail="log-{{ r.id }}" aria-expanded="false" title="Show details">
+        <td class="nowrap mono">{{ fmt_ts(r.ts) }}</td>
+        <td>{{ r.username or '-' }}</td>
+        <td class="nowrap">{{ ROLE_META[r.role].title if r.role in ROLE_META else (r.role or '') }}</td>
+        <td>{{ it.label }}</td>
+        <td class="nowrap mono">{% if it.ref %}{% if portal_role == 'admin' %}<a href="{{ url_for('admin.request_detail', job_id=it.ref[1]) }}">{{ it.ref[0] }}</a>{% else %}<a href="{{ url_for('hod.audit_log', q=it.ref[0].split(' / ')[0], all=1) }}">{{ it.ref[0] }}</a>{% endif %}{% endif %}</td>
+        <td class="small" style="max-width:360px">{{ it.detail }}</td>
+      </tr>
+      <tr id="log-{{ r.id }}" class="hidden log-detail"><td colspan="6">
+        <table class="kv small">
+          <tr><th>Entry</th><td>#{{ r.id }} <span class="mono muted">{{ r.action }}</span> {{ r.entity_type or '' }} {{ r.entity_id or '' }}</td></tr>
+          <tr><th>Before</th><td class="mono" style="word-break:break-all">{{ r.before_json or '-' }}</td></tr>
+          <tr><th>After</th><td class="mono" style="word-break:break-all">{{ r.after_json or '-' }}</td></tr>
+          <tr><th>IP address</th><td>{{ r.ip or '-' }}</td></tr>
+          <tr><th>User agent</th><td>{{ r.user_agent or '-' }}</td></tr>
+          <tr><th>Row hash</th><td class="mono">{{ r.row_hash }}</td></tr>
+        </table>
+      </td></tr>
+    {% else %}<tr><td colspan="6" class="empty">No matching entries.</td></tr>{% endfor %}
     </tbody>
   </table>
   </div>
 </div>
-<p class="note">Latest {{ rows|length }} entries (maximum 500). Use the filters or the CSV export for older entries.</p>
+<div class="form-actions" style="justify-content:space-between">
+  <span class="note">Page {{ page }} - 50 entries per page, newest first. Click a row for details.</span>
+  <span>
+    {% if page > 1 %}<a class="btn btn-sm" href="{{ url_for(portal_role ~ '.audit_log', page=page - 1, **args) }}">Newer</a>{% endif %}
+    {% if has_next %}<a class="btn btn-sm" href="{{ url_for(portal_role ~ '.audit_log', page=page + 1, **args) }}">Older</a>{% endif %}
+  </span>
+</div>
 {% endblock %}

@@ -15,7 +15,7 @@ from datetime import datetime
 from flask import Blueprint, Response, abort, flash, g, jsonify, redirect, render_template, request, send_file, url_for
 
 import config
-from .. import approvals, audit, fields as F, integrity, jobs, report, workflow
+from .. import activity, approvals, audit, fields as F, integrity, jobs, report, workflow
 from ..netinfo import network_url
 from ..auth import role_required
 from ..db import IST, get_db, get_settings, now_ist, tx
@@ -584,22 +584,7 @@ def registry_edit():
 # activity log (operational view)
 # =============================================================================
 def audit_query(args):
-    sql, params = "SELECT * FROM audit_log WHERE 1=1", []
-    for key, col in (("user", "username"), ("role", "role"), ("action", "action"), ("entity", "entity_type")):
-        v = (args.get(key) or "").strip()
-        if v:
-            sql += f" AND {col} LIKE ?"
-            params.append(f"%{v}%")
-    if args.get("entity_id"):
-        sql += " AND entity_id=?"
-        params.append(args["entity_id"])
-    if args.get("from"):
-        sql += " AND substr(ts,1,10) >= ?"
-        params.append(args["from"])
-    if args.get("to"):
-        sql += " AND substr(ts,1,10) <= ?"
-        params.append(args["to"])
-    return sql + " ORDER BY id DESC", params
+    return activity.build_query(args)
 
 
 def audit_csv_response(conn, args):
@@ -616,13 +601,36 @@ def audit_csv_response(conn, args):
                     headers={"Content-Disposition": f"attachment; filename=atrg_audit_{datetime.now(IST):%Y%m%d_%H%M}.csv"})
 
 
+def render_activity(portal_role):
+    """Shared Activity log page (Test In-charge and HOD). Read-only."""
+    data = activity.page(get_db(), request.args)
+    return render_template("audit.html", portal_role=portal_role, can_verify=True, fmt_ts=activity.fmt_ts, **data)
+
+
+def verify_chain_response(conn):
+    res = audit.verify_chain(conn)
+    audit.log(conn, "audit.verify_chain", "audit_log", None, None, res)
+    msg = (f"Log verified: {res['rows']} entries, chain intact" if res["ok"]
+           else f"Integrity problem at entry #{res['bad_id']}")
+    return jsonify(message=msg, **res)
+
+
 @bp.route("/audit")
 @role_required("admin")
 def audit_log():
-    conn = get_db()
-    sql, params = audit_query(request.args)
-    rows = conn.execute(sql + " LIMIT 500", params).fetchall()
-    return render_template("audit.html", rows=rows, args=request.args, portal_role="admin", can_verify=False)
+    return render_activity("admin")
+
+
+@bp.route("/activity")
+@role_required("admin")
+def activity_log():
+    return redirect(url_for("admin.audit_log", **request.args))
+
+
+@bp.route("/audit/verify", methods=["POST"])
+@role_required("admin")
+def audit_verify():
+    return verify_chain_response(get_db())
 
 
 @bp.route("/audit.csv")

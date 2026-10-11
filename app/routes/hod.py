@@ -17,7 +17,7 @@ from ..ai import client as ai
 from ..auth import role_required
 from ..db import IST, get_db, get_settings, now_ist, save_setting, tx
 from ..reporting import templates as T
-from .admin import audit_csv_response, audit_query, turnaround_days
+from .admin import audit_csv_response, audit_query, render_activity, turnaround_days, verify_chain_response
 from .common import register_auth_views, validate_registration
 
 bp = Blueprint("hod", __name__)
@@ -224,10 +224,13 @@ def template_dryrun(tid):
 @bp.route("/audit")
 @role_required("hod")
 def audit_log():
-    conn = get_db()
-    sql, params = audit_query(request.args)
-    rows = conn.execute(sql + " LIMIT 500", params).fetchall()
-    return render_template("audit.html", rows=rows, args=request.args, portal_role="hod", can_verify=True)
+    return render_activity("hod")
+
+
+@bp.route("/activity")
+@role_required("hod")
+def activity_log():
+    return redirect(url_for("hod.audit_log", **request.args))
 
 
 @bp.route("/audit.csv")
@@ -239,10 +242,7 @@ def audit_csv():
 @bp.route("/audit/verify", methods=["POST"])
 @role_required("hod")
 def audit_verify():
-    conn = get_db()
-    res = audit.verify_chain(conn)
-    audit.log(conn, "audit.verify_chain", "audit_log", None, None, res)
-    return jsonify(ok=True, **res)
+    return verify_chain_response(get_db())
 
 
 # =============================================================================

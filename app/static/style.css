@@ -304,3 +304,9 @@ dialog::backdrop { background: rgba(29, 39, 51, .35); }
   border-left: 1px solid var(--border); z-index: 20; display: flex; flex-direction: column; }
 .drawer .source-view { padding: 12px; overflow: auto; flex: 1; }
 @media (min-width: 1100px) { body.drawer-open .content { padding-right: calc(min(520px, 92vw) + 24px); } }   /* values stay visible beside the source */
+
+/* ---------------------------------------------------------------- activity log */
+.table tr.log-row { cursor: pointer; }
+.table tr.log-row:hover td { background: #FAFBFC; }
+.table tr.log-detail td { background: var(--bg); }
+.searchbar label { margin: 0; }

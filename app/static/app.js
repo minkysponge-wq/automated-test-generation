@@ -375,12 +375,20 @@
       `<table class="table compact">${data.checks.map((c) => `<tr><td>${esc(c.label)}</td><td><span class="badge ${c.ok ? "green" : "red"}">${c.ok ? "Verified" : "Mismatch"}</span></td></tr>`).join("")}</table>`;
   });
 
-  // ---------------------------------------------------------------- audit chain verification (HOD)
+  // ---------------------------------------------------------------- activity log: chain verification, row details
   const vc = $("#verify-chain");
   if (vc) vc.addEventListener("click", async () => {
+    vc.disabled = true;
     const { data } = await post(vc.dataset.url, {});
-    $("#chain-result").innerHTML = `<div class="callout ${data.ok ? "good" : "bad"}">${data.ok
-      ? `Audit chain verified: ${data.rows} entries, no gaps or edits.` : `Mismatch: the chain is broken at entry ${data.bad_id}.`}</div>`;
+    vc.disabled = false;
+    const good = data.ok === true;
+    $("#chain-result").innerHTML = `<div class="callout ${good ? "good" : "bad"}">${esc(data.message || data.error || "Verification failed")}</div>`;
+  });
+  document.addEventListener("click", (e) => {
+    const tr = e.target.closest("tr.log-row");
+    if (!tr || e.target.closest("a")) return;
+    const det = document.getElementById(tr.dataset.detail);
+    if (det) { det.classList.toggle("hidden"); tr.setAttribute("aria-expanded", det.classList.contains("hidden") ? "false" : "true"); }
   });
 
   // ---------------------------------------------------------------- admin live preview
