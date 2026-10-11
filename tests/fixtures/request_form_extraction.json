@@ -1,0 +1,352 @@
+{
+ "_source": "Page 1-2 fields: saved real read of reference/Customer_request_form.pdf. Proforma fields and tests: transcribed from reference/Proforma_for_transformers.pdf (one combined upload).",
+ "kind": "request_form",
+ "fields": {
+  "customer_name": {
+   "value": "A.P.TRANSFORMERS",
+   "confidence": 0.95,
+   "source": "pdf_page 1",
+   "check": false
+  },
+  "customer_address": {
+   "value": "SP24 & 95H/1 (SP), Ambattur Indl Estate CHENNAI - 600058",
+   "confidence": 0.92,
+   "source": "pdf_page 1",
+   "check": false
+  },
+  "samples": {
+   "value": "3 Phase Distribution Transformer",
+   "confidence": 0.95,
+   "source": "pdf_page 1",
+   "check": false
+  },
+  "rating": {
+   "value": "250 KVA / 11 KV / 433 V, 3 PH, 50 HZ Copper wound",
+   "confidence": 0.92,
+   "source": "pdf_page 1",
+   "check": false
+  },
+  "sample_description": {
+   "value": "non Sealed Type, outdoor with Tapping +5% to -10% on the primary side (7 taps)",
+   "confidence": 0.9,
+   "source": "pdf_page 1",
+   "check": false
+  },
+  "sample_type": {
+   "value": "ONAN outdoor Type Distribution Transformer",
+   "confidence": 0.92,
+   "source": "pdf_page 1",
+   "check": false
+  },
+  "serial_numbers": {
+   "value": "1098",
+   "confidence": 0.95,
+   "source": "pdf_page 1",
+   "check": false
+  },
+  "manufacturer": {
+   "value": "250 KVA / 11 KV / 433 V EEL1, outdoor type 3 PH, 50 HZ Copper wound, non sealed type with tapping +5% to -10% (7 taps)",
+   "confidence": 0.88,
+   "source": "pdf_page 1",
+   "check": false
+  },
+  "criteria": {
+   "value": "As per Standard",
+   "confidence": 0.9,
+   "source": "pdf_page 1",
+   "check": false
+  },
+  "num_samples": {
+   "value": "1",
+   "confidence": 0.95,
+   "source": "pdf_page 1",
+   "check": false
+  },
+  "take_back": {
+   "value": "Yes",
+   "confidence": 0.95,
+   "source": "pdf_page 1",
+   "check": false
+  },
+  "tests_details": {
+   "value": "Type test",
+   "confidence": 0.9,
+   "source": "pdf_page 1",
+   "check": false
+  },
+  "witness_customer": {
+   "value": "Mr Vivekanand Krishna Customer representative",
+   "confidence": 0.88,
+   "source": "pdf_page 1",
+   "check": false
+  },
+  "dispatch_to": {
+   "value": "Handed over to person",
+   "confidence": 0.9,
+   "source": "pdf_page 1",
+   "check": false
+  },
+  "dispatch_mode": {
+   "value": "By hand",
+   "confidence": 0.85,
+   "source": "pdf_page 1",
+   "check": false
+  },
+  "msme": {
+   "value": "Yes",
+   "confidence": 0.95,
+   "source": "pdf_page 2",
+   "check": false
+  },
+  "soc_required": {
+   "value": "Yes",
+   "confidence": 0.95,
+   "source": "pdf_page 2",
+   "check": false
+  },
+  "decision_rule": {
+   "value": "(i)",
+   "confidence": 0.95,
+   "source": "pdf_page 2",
+   "check": false
+  },
+  "pf_kva": {
+   "value": "250",
+   "confidence": 0.9,
+   "source": "pdf_page 4",
+   "check": false
+  },
+  "pf_hv_v": {
+   "value": "11000",
+   "confidence": 0.9,
+   "source": "pdf_page 4",
+   "check": false
+  },
+  "pf_lv_v": {
+   "value": "433",
+   "confidence": 0.9,
+   "source": "pdf_page 4",
+   "check": false
+  },
+  "pf_sealing": {
+   "value": "Non-sealed",
+   "confidence": 0.9,
+   "source": "pdf_page 4",
+   "check": false
+  },
+  "pf_insulation": {
+   "value": "Oil immersed",
+   "confidence": 0.9,
+   "source": "pdf_page 4",
+   "check": false
+  },
+  "pf_location": {
+   "value": "Outdoor",
+   "confidence": 0.9,
+   "source": "pdf_page 4",
+   "check": false
+  },
+  "pf_um": {
+   "value": "12",
+   "confidence": 0.9,
+   "source": "pdf_page 4",
+   "check": false
+  },
+  "pf_hv_li": {
+   "value": "75 kV",
+   "confidence": 0.9,
+   "source": "pdf_page 4",
+   "check": false
+  },
+  "pf_hv_ac": {
+   "value": "28 kV rms",
+   "confidence": 0.9,
+   "source": "pdf_page 4",
+   "check": false
+  },
+  "pf_lv_ac": {
+   "value": "3 kV rms",
+   "confidence": 0.9,
+   "source": "pdf_page 4",
+   "check": false
+  },
+  "pf_impedance": {
+   "value": "4.50",
+   "confidence": 0.9,
+   "source": "pdf_page 4",
+   "check": false
+  },
+  "pf_phases": {
+   "value": "3",
+   "confidence": 0.9,
+   "source": "pdf_page 4",
+   "check": false
+  },
+  "pf_freq": {
+   "value": "50",
+   "confidence": 0.9,
+   "source": "pdf_page 4",
+   "check": false
+  },
+  "pf_vector_group": {
+   "value": "Dyn11",
+   "confidence": 0.9,
+   "source": "pdf_page 4",
+   "check": false
+  },
+  "pf_eel": {
+   "value": "EEL-1",
+   "confidence": 0.9,
+   "source": "pdf_page 4",
+   "check": false
+  },
+  "pf_cooling": {
+   "value": "ONAN",
+   "confidence": 0.9,
+   "source": "pdf_page 4",
+   "check": false
+  },
+  "pf_tap_plus": {
+   "value": "5",
+   "confidence": 0.9,
+   "source": "pdf_page 4",
+   "check": false
+  },
+  "pf_tap_minus": {
+   "value": "10",
+   "confidence": 0.9,
+   "source": "pdf_page 4",
+   "check": false
+  },
+  "pf_tap_step": {
+   "value": "2.5",
+   "confidence": 0.9,
+   "source": "pdf_page 4",
+   "check": false
+  },
+  "pf_max_tl50": {
+   "value": "980",
+   "confidence": 0.9,
+   "source": "pdf_page 4",
+   "check": false
+  },
+  "pf_max_tl100": {
+   "value": "2930",
+   "confidence": 0.9,
+   "source": "pdf_page 4",
+   "check": false
+  },
+  "pf_oil_volume": {
+   "value": "460",
+   "confidence": 0.9,
+   "source": "pdf_page 4",
+   "check": false
+  },
+  "pf_mfg": {
+   "value": "10/2025",
+   "confidence": 0.9,
+   "source": "pdf_page 4",
+   "check": false
+  },
+  "pf_winding_material": {
+   "value": "Copper",
+   "confidence": 0.9,
+   "source": "pdf_page 4",
+   "check": false
+  },
+  "pf_coil_shape": {
+   "value": "Circular",
+   "confidence": 0.9,
+   "source": "pdf_page 4",
+   "check": false
+  },
+  "pf_core": {
+   "value": "CRGO",
+   "confidence": 0.9,
+   "source": "pdf_page 4",
+   "check": false
+  },
+  "pf_lv_winding": {
+   "value": "Helical / Spiral (Copper)",
+   "confidence": 0.9,
+   "source": "pdf_page 4",
+   "check": false
+  },
+  "pf_hv_winding": {
+   "value": "Cross over (Copper)",
+   "confidence": 0.9,
+   "source": "pdf_page 4",
+   "check": false
+  },
+  "pf_gtr_top_oil": {
+   "value": "35",
+   "confidence": 0.9,
+   "source": "pdf_page 5",
+   "check": false
+  },
+  "pf_gtr_winding": {
+   "value": "40",
+   "confidence": 0.9,
+   "source": "pdf_page 5",
+   "check": false
+  }
+ },
+ "drawings": [
+  {
+   "number": "APT/250-11/001",
+   "sheet": "",
+   "rev": "",
+   "check": false
+  },
+  {
+   "number": "APT/250-11/001B",
+   "sheet": "",
+   "rev": "",
+   "check": false
+  }
+ ],
+ "tests": [
+  "sc_withstand",
+  "temp_rise",
+  "pressure_type",
+  "nlc_112",
+  "oil_leak"
+ ],
+ "test_lines": [
+  {
+   "text": "Dynamic ability to withstand short circuit (with thermal short)",
+   "struck_out": false,
+   "code": "sc_withstand"
+  },
+  {
+   "text": "Temperature rise test (35 / 40 C)",
+   "struck_out": false,
+   "code": "temp_rise"
+  },
+  {
+   "text": "Unbalance current",
+   "struck_out": true,
+   "code": null
+  },
+  {
+   "text": "Pressure test",
+   "struck_out": false,
+   "code": "pressure_type"
+  },
+  {
+   "text": "Vacuum test",
+   "struck_out": false,
+   "code": null
+  },
+  {
+   "text": "No load current at 112.5 %",
+   "struck_out": false,
+   "code": "nlc_112"
+  },
+  {
+   "text": "Oil leakage test",
+   "struck_out": false,
+   "code": "oil_leak"
+  }
+ ]
+}
