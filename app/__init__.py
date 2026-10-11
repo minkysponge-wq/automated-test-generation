@@ -28,8 +28,9 @@ def create_app(test_config=None):
         PERMANENT_SESSION_LIFETIME=timedelta(hours=12),
         SESSION_COOKIE_HTTPONLY=True,
         SESSION_COOKIE_SAMESITE="Lax",
+        SESSION_COOKIE_SECURE=config.HTTPS,        # plain HTTP on the lab network unless HTTPS is configured
         SESSION_COOKIE_NAME="atrg_session",
-    )
+    )                                              # SERVER_NAME stays unset so any host / IP address works
     if test_config:
         app.config.update(test_config)
     for d in (config.UPLOAD_DIR, config.REPORT_DIR, config.SEALED_DIR, config.PREVIEW_DIR, config.INSTANCE_DIR,

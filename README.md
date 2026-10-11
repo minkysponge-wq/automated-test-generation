@@ -87,16 +87,29 @@ Account rules: customers are active immediately; engineers wait for an admin; ad
 There is no public HOD registration. Create the first HOD with `python manage.py create-hod`; an HOD can
 create further HODs on the Accounts page. Passwords need at least 8 characters.
 
-## 4. Use from other computers (LAN)
+## 4. Using it on the lab network
 
-1. Connect all computers to the same Wi-Fi or LAN. The laptop running `run.py` is the server.
-2. Allow the port through Windows Firewall on the server (PowerShell as Administrator):
+The computer that runs the app is the server; every other computer only needs a browser.
 
-```bash
-netsh advfirewall firewall add rule name="CPRI ATRG 5000" dir=in action=allow protocol=TCP localport=5000
+1. On the server computer, run `allow_firewall.bat` once as administrator (right-click, Run as administrator).
+   It opens the app's port (5000, or `ATRG_PORT` from `.env`) for private and domain networks.
+2. Set that computer's network profile to **Private** (Settings -> Network & internet -> your network ->
+   Network profile type).
+3. Start the app with `start_server.bat`. The window prints the addresses, for example:
+
+```text
+CPRI ATRG is running.
+On this computer:            http://localhost:5000
+From other computers (LAN):  http://192.168.1.23:5000
 ```
 
-3. Open the LAN address printed by `run.py` (for example `http://192.168.1.23:5000`) on the other computers.
+4. On the other computers, open the LAN address shown in the window. The HOD and Test In-charge Home pages
+   also show it.
+5. Troubleshooting:
+   - All machines must be on the same network.
+   - Some phone hotspots block devices from reaching each other (client isolation). Use a router or another
+     hotspot.
+   - Find the server's IP address with `ipconfig` (IPv4 Address).
 
 Each role uses its own session key, so one browser can be signed in to all four portals in separate tabs.
 

@@ -24,6 +24,7 @@ def _env(name, default):
 HOST = _env("ATRG_HOST", "0.0.0.0")
 PORT = int(_env("ATRG_PORT", "5000"))
 THREADS = int(_env("ATRG_THREADS", "8"))
+HTTPS = _env("ATRG_HTTPS", "false").strip().lower() in ("1", "true", "yes")   # only behind an HTTPS proxy
 
 # --- paths ----------------------------------------------------------------
 INSTANCE_DIR = os.path.join(BASE_DIR, "instance")
