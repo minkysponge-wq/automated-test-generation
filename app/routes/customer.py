@@ -13,7 +13,7 @@ from .. import audit, excel_io, fields as F, integrity, jobs, request_form, work
 from ..ai import client as ai, intake
 from ..auth import role_required
 from ..db import get_db, tx
-from .common import register_auth_views
+from .common import report_file_name, register_auth_views
 
 bp = Blueprint("customer", __name__)
 register_auth_views(bp, "customer")
@@ -155,7 +155,7 @@ def download_report(job_id, fmt):
     if not path or not os.path.exists(path):
         abort(404)
     audit.log(conn, "report.download", "report", rep["id"], None, {"format": fmt, "report_no": rep["report_no"]})
-    return send_file(path, as_attachment=True, download_name=os.path.basename(path))
+    return send_file(path, as_attachment=True, download_name=report_file_name(rep, job, path))
 
 
 @bp.route("/requests/<int:job_id>/verify", methods=["POST"])

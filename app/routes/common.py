@@ -10,6 +10,7 @@ Account approval chain
     admin     pending until the HOD approves (approval type `admin_account`)
     hod       no public registration (manage.py create-hod, or an HOD creates another HOD)
 """
+import os
 import re
 import sqlite3
 
@@ -195,3 +196,9 @@ def expected_version():
 def outcome_flash(outcome, done_msg, pending_msg="Sent to the HOD for approval."):
     kind, _ = outcome
     flash(done_msg if kind == "applied" else pending_msg, "success" if kind == "applied" else "info")
+
+
+def report_file_name(rep, job, path):
+    """Name of a downloaded report: {report_no}_{sample_no}.docx/.pdf (the sealed file on disk keeps its name)."""
+    ext = os.path.splitext(path)[1]
+    return f"{rep['report_no'].replace('/', '-')}_{job['sample_code']}{ext}"

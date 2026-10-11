@@ -20,7 +20,7 @@ from ..netinfo import network_url
 from ..auth import role_required
 from ..db import IST, get_db, get_settings, now_ist, tx
 from ..reporting import templates as T
-from .common import expected_version, outcome_flash, register_auth_views
+from .common import expected_version, outcome_flash, register_auth_views, report_file_name
 
 bp = Blueprint("admin", __name__)
 register_auth_views(bp, "admin")
@@ -280,7 +280,7 @@ def download_report(job_id, fmt):
     if not path or not os.path.exists(path):
         abort(404)
     audit.log(conn, "report.download", "report", rep["id"], None, {"format": fmt})
-    return send_file(path, as_attachment=fmt != "pdf", download_name=os.path.basename(path))
+    return send_file(path, as_attachment=fmt != "pdf", download_name=report_file_name(rep, _job(job_id), path))
 
 
 @bp.route("/requests/<int:job_id>/verify", methods=["POST"])
