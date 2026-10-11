@@ -20,6 +20,12 @@
   }
 
 
+  // ---------------------------------------------------------------- dismissible flash messages
+  document.addEventListener("click", (e) => {
+    const b = e.target.closest(".flash-close");
+    if (b) b.closest(".flash").remove();
+  });
+
   // ---------------------------------------------------------------- clickable table rows
   document.addEventListener("click", (e) => {
     const tr = e.target.closest("tr.row-link");

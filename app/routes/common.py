@@ -21,14 +21,66 @@ from ..db import get_db, tx
 
 ROLE_META = {
     "customer": {"title": "Customer", "long": "Customer portal",
-                 "blurb": "Submit test requests, follow their progress and download issued reports."},
+                 "blurb": "Submit test requests, track progress and download reports."},
     "engineer": {"title": "Test Engineer", "long": "Test engineer portal",
-                 "blurb": "Enter test readings from logsheets, verify them and lock jobs for review."},
+                 "blurb": "Enter readings, verify results and lock jobs for review."},
     "admin": {"title": "Test In-charge", "long": "Test In-charge portal",
-              "blurb": "Accept requests, assign engineers, review results and forward reports to the HOD."},
+              "blurb": "Accept requests, assign engineers and review results."},
     "hod": {"title": "Head of Division", "long": "HOD portal",
-            "blurb": "Authorize reports and approve changes made by the Test In-charge."},
+            "blurb": "Authorize reports and approve changes."},
 }
+
+
+# Sidebar per role (max 6 items): key, label, endpoint, query args, icon.
+NAV = {
+    "customer": [("home", "Home", "customer.dashboard", {}, "home"),
+                 ("new", "New request", "customer.new_request", {}, "file-plus"),
+                 ("requests", "My requests", "customer.dashboard", {"view": "requests"}, "list"),
+                 ("reports", "Reports", "customer.dashboard", {"view": "reports"}, "layout")],
+    "engineer": [("home", "Home", "engineer.dashboard", {}, "home"),
+                 ("jobs", "My jobs", "engineer.dashboard", {"view": "jobs"}, "list")],
+    "admin": [("home", "Home", "admin.dashboard", {}, "home"),
+              ("requests", "Requests", "admin.dashboard", {"status": "SUBMITTED"}, "inbox"),
+              ("jobs", "Jobs", "admin.dashboard", {"view": "jobs"}, "list"),
+              ("activity", "Activity log", "admin.audit_log", {}, "activity"),
+              ("config", "Configuration", "admin.settings", {}, "settings")],
+    "hod": [("home", "Home", "hod.dashboard", {}, "home"),
+            ("approvals", "Approvals", "hod.approval_list", {}, "inbox"),
+            ("reports", "Reports", "hod.approval_list", {"show": "reports"}, "layout"),
+            ("activity", "Activity log", "hod.audit_log", {}, "activity"),
+            ("system", "System", "hod.system", {}, "server")],
+}
+
+# Pages that are not in the sidebar: which sidebar item they belong to, and the tabs shown on them.
+NAV_SECTION = {
+    "admin.engineers": "config", "admin.templates": "config", "admin.template_detail": "config",
+    "admin.registry": "config", "admin.registry_edit": "config", "admin.request_detail": "jobs",
+    "customer.request_detail": "requests", "engineer.job": "jobs",
+    "hod.settings": "system", "hod.accounts": "system", "hod.approval_detail": "approvals",
+}
+SUBNAV = {
+    ("admin", "config"): [("admin.settings", "Configuration"), ("admin.engineers", "Engineer accounts"),
+                          ("admin.templates", "Report templates"), ("admin.registry", "Field registry")],
+    ("hod", "system"): [("hod.system", "System"), ("hod.settings", "Settings"), ("hod.accounts", "Accounts")],
+}
+
+
+def nav_state(role, endpoint, args, override=None):
+    """(sidebar items with an `active` flag, tabs for the current section) for the signed-in layout."""
+    items = NAV.get(role, [])
+    active = override
+    if active is None:
+        best = -1
+        for key, _, ep, q, _ in items:
+            if ep == endpoint and all(args.get(k) == v for k, v in q.items()) and len(q) > best:
+                active, best = key, len(q)
+    if active is None:
+        active = NAV_SECTION.get(endpoint)
+    nav = [{"key": k, "label": label, "endpoint": ep, "args": q, "icon": ic, "active": k == active}
+           for k, label, ep, q, ic in items]
+    tabs = [{"endpoint": ep, "label": label, "active": ep == endpoint}
+            for ep, label in SUBNAV.get((role, active), [])]
+    return nav, tabs
 
 
 def register_auth_views(bp, role):
@@ -100,7 +152,7 @@ def register_auth_views(bp, role):
     def logout():
         auth.logout(role)
         flash("Signed out.", "info")
-        return redirect(url_for(f"{role}.login"))
+        return redirect(url_for("public.landing"))
 
     @bp.route("/notifications")
     @auth.role_required(role)

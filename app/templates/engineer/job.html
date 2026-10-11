@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% from "components/macros.html" import status_badge, result_badge with context %}
-{% set nav = 'engineer.dashboard' %}
+{% set nav = 'jobs' %}
+{% set crumbs = [('My jobs', url_for('engineer.dashboard', view='jobs')), (job.sample_code, url_for('engineer.job', job_id=job.id)), ('Readings', None)] %}
 {% block title %}{{ job.sample_code }}{% endblock %}
 {% block heading %}{{ job.sample_code }} <span class="sub">{{ job.report_no }} - {{ form.customer_name }}, {{ form.rating }}, serial {{ form.serial_numbers }}</span>{% endblock %}
 {% block actions %}{{ status_badge(job.status) }}{% endblock %}
@@ -95,7 +96,7 @@
 
   {% set st_results = results|selectattr('station', 'equalto', s.station)|list %}
   {% if st_results %}
-  <div class="panel-head"><h2>Rule checks and calculations</h2>
+  <div class="panel-head"><h2>Rule checks and results</h2>
     <span class="small muted">{{ st_results|selectattr('passed', 'equalto', 1)|list|length }} pass, {{ st_results|selectattr('passed', 'equalto', 0)|list|length }} fail</span></div>
   <div class="table-wrap" style="max-height:320px">
   <table class="table compact">

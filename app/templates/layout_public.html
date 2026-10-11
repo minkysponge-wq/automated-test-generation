@@ -16,7 +16,7 @@
 </header>
 <main class="public-main">
   {%- with messages = get_flashed_messages(with_categories=true) %}
-    {%- for cat, msg in messages %}<div class="flash flash-{{ cat }}" role="status">{{ msg }}</div>{% endfor %}
+    {%- for cat, msg in messages %}<div class="flash flash-{{ cat }}" role="status"><span>{{ msg }}</span><button type="button" class="flash-close" aria-label="Dismiss">&times;</button></div>{% endfor %}
   {%- endwith %}
   {% block content %}{% endblock %}
 </main>

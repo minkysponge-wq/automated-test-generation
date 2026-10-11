@@ -1,7 +1,8 @@
 {% extends "base.html" %}
 {% from "components/macros.html" import status_badge with context %}
-{% block title %}Requests{% endblock %}
+{% block title %}{{ 'Requests' if status == 'SUBMITTED' and not q else ('Jobs' if view == 'jobs' else 'Home') }}{% endblock %}
 {% block content %}
+{% if lan_url %}<p class="note netinfo">Network address for other computers: <span class="mono">{{ lan_url }}</span></p>{% endif %}
 <div class="facts">
   <div><div class="k">Awaiting acceptance</div><div class="v">{{ kpi.awaiting_accept }}</div></div>
   <div><div class="k">In testing</div><div class="v">{{ kpi.in_testing }}</div></div>
@@ -13,9 +14,10 @@
 </div>
 
 <div class="panel">
-  <div class="panel-head"><h2>All requests</h2>
+  <div class="panel-head"><h2>{{ 'Jobs in progress' if view == 'jobs' else 'Requests' }}</h2>
     <div class="small muted">{% for s, label in STATE_LABELS.items() if counts.get(s) %}<a href="{{ url_for('admin.dashboard', status=s) }}">{{ label }}: {{ counts.get(s) }}</a>{% if not loop.last %} &middot; {% endif %}{% endfor %}</div></div>
   <form class="searchbar" method="get" role="search">
+    {% if view %}<input type="hidden" name="view" value="{{ view }}">{% endif %}
     <input name="q" value="{{ q }}" placeholder="Customer, serial number, reference, sample code, report number" aria-label="Search">
     <select name="status" aria-label="Status"><option value="">Any status</option>
       {% for s, label in STATE_LABELS.items() %}<option value="{{ s }}" {% if s == status %}selected{% endif %}>{{ label }}</option>{% endfor %}</select>

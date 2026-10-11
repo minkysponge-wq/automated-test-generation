@@ -1,5 +1,6 @@
 {% extends "base.html" %}
-{% set nav = 'admin.templates' %}
+{% set nav = 'config' %}
+{% set crumbs = [('Configuration', url_for('admin.settings')), ('Report templates', url_for('admin.templates')), (rec.name ~ ' v' ~ rec.version, None)] %}
 {% set st = view.stats %}
 {% set m = view.mapping %}
 {% set editable = rec.status == 'draft' %}

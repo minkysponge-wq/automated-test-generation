@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% from "components/macros.html" import status_badge with context %}
-{% block title %}Test requests{% endblock %}
+{% block title %}{{ 'Reports' if view == 'reports' else ('My requests' if view == 'requests' else 'Home') }}{% endblock %}
 {% block actions %}<a class="btn btn-primary btn-sm" href="{{ url_for('customer.new_request') }}">New test request</a>{% endblock %}
 {% block content %}
 <div class="panel">
@@ -23,6 +23,6 @@
     </tbody>
   </table>
   </div>
-  {% else %}<div class="empty">No requests yet.</div>{% endif %}
+  {% else %}<div class="empty">{{ 'No reports have been issued yet.' if view == 'reports' else 'No requests yet.' }}</div>{% endif %}
 </div>
 {% endblock %}

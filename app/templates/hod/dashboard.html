@@ -1,6 +1,7 @@
 {% extends "base.html" %}
-{% block title %}Dashboard{% endblock %}
+{% block title %}Home{% endblock %}
 {% block content %}
+{% if lan_url %}<p class="note netinfo">Network address for other computers: <span class="mono">{{ lan_url }}</span></p>{% endif %}
 <div class="facts">
   <div><div class="k">Pending approvals</div><div class="v"><a href="{{ url_for('hod.approval_list') }}">{{ kpi.pending }}</a></div></div>
   <div><div class="k">Reports issued this month</div><div class="v">{{ kpi.issued_month }}</div></div>

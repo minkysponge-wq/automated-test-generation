@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% from "components/macros.html" import status_badge, stepper, verify_box with context %}
-{% set nav = 'customer.dashboard' %}
+{% set nav = 'requests' %}
+{% set crumbs = [('My requests', url_for('customer.dashboard', view='requests')), (job.ref or job.id, None)] %}
 {% block title %}Request {{ job.ref or job.id }}{% endblock %}
 {% block heading %}Request {{ job.ref or job.id }} <span class="sub">{{ STATE_LABELS[job.status] }}</span>{% endblock %}
 {% block content %}

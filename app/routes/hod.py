@@ -12,6 +12,7 @@ from flask import Blueprint, abort, flash, g, jsonify, redirect, render_template
 
 import config
 from .. import approvals, audit, auth, fields as F, jobs, report, workflow
+from ..netinfo import network_url
 from ..ai import client as ai
 from ..auth import role_required
 from ..db import IST, get_db, get_settings, now_ist, save_setting, tx
@@ -109,7 +110,8 @@ def dashboard():
         "open_jobs": sum(n for s, n in counts.items() if s not in (workflow.ISSUED, workflow.REJECTED)),
     }
     return render_template("hod/dashboard.html", kpi=kpi, pending=pending, stages=stage_turnaround(conn), fails=fails,
-                           status=system_status(conn), age=age_text, counts=counts)
+                           status=system_status(conn), age=age_text, counts=counts,
+                           lan_url=network_url(request, config.PORT))
 
 
 # =============================================================================
@@ -120,10 +122,16 @@ def dashboard():
 def approval_list():
     conn = get_db()
     show = request.args.get("show", "pending")
-    sql = ("SELECT a.*, u.full_name AS requester, d.full_name AS decider FROM approval_requests a "
-           "LEFT JOIN users u ON u.id=a.requested_by LEFT JOIN users d ON d.id=a.decided_by")
-    rows = conn.execute(sql + (" WHERE a.status='pending' ORDER BY a.id" if show == "pending" else
-                               " ORDER BY a.id DESC LIMIT 300")).fetchall()
+    sql = ("SELECT a.*, u.full_name AS requester, d.full_name AS decider, r.sample_code, r.report_no AS job_report_no "
+           "FROM approval_requests a LEFT JOIN users u ON u.id=a.requested_by LEFT JOIN users d ON d.id=a.decided_by "
+           "LEFT JOIN requests r ON a.type='issue_report' AND r.id=CAST(a.entity_id AS INTEGER)")
+    if show == "pending":
+        where = " WHERE a.status='pending' ORDER BY a.id"
+    elif show == "reports":                    # sidebar "Reports": final report authorizations
+        where = " WHERE a.type='issue_report' ORDER BY a.id DESC LIMIT 300"
+    else:
+        where = " ORDER BY a.id DESC LIMIT 300"
+    rows = conn.execute(sql + where).fetchall()
     return render_template("hod/approvals.html", rows=rows, show=show, age=age_text, labels={t: s.label for t, s in
                                                                                             approvals.REGISTRY.items()})
 

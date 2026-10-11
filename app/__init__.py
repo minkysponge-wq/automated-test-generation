@@ -48,7 +48,7 @@ def create_app(test_config=None):
     @app.context_processor
     def _inject():
         from flask import g
-        from .routes.common import ROLE_META
+        from .routes.common import ROLE_META, nav_state
         unread = 0
         user = getattr(g, "user", None)
         if user:
@@ -64,6 +64,8 @@ def create_app(test_config=None):
             "TESTS": fields.tests(),
             "ROLE_META": ROLE_META,
             "unread_count": unread,
+            "nav_state": nav_state,
+            "signed_in_as": lambda r: auth.load_user(r),
         }
 
     @app.template_filter("fromjson")

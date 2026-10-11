@@ -38,7 +38,10 @@ def dashboard():
         "SELECT r.*, je.role AS my_role, je.station AS my_station FROM requests r "
         "JOIN job_engineers je ON je.job_id=r.id WHERE je.user_id=? ORDER BY r.is_sealed, r.id DESC",
         (g.user["id"],)).fetchall()
-    return render_template("engineer/dashboard.html", rows=rows)
+    view = request.args.get("view", "")
+    if view == "jobs":                         # sidebar "My jobs": jobs still open (not issued)
+        rows = [r for r in rows if not r["is_sealed"]]
+    return render_template("engineer/dashboard.html", rows=rows, view=view)
 
 
 @bp.route("/jobs/<int:job_id>")

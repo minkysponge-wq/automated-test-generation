@@ -2,24 +2,25 @@
 {% block title %}Automated Test Report Generation{% endblock %}
 {% block content %}
 <h1 style="font-size:24px;margin-bottom:8px">Automated Test Report Generation</h1>
-<p class="lead">Test requests, logsheet readings, calculations and the issue of sealed test reports for power
-transformers, from intake to the HOD's authorization. Choose your portal.</p>
+<p class="lead">Short Circuit Laboratory, CPRI Bengaluru. Choose your portal to sign in.</p>
 
 <div class="portals">
-  {% for r, ep in [('customer', 'customer.login'), ('engineer', 'engineer.login'), ('admin', 'admin.login'), ('hod', 'hod.login')] %}
-  <a class="portal" href="{{ url_for(ep) }}">
+  {%- for r in ['customer', 'engineer', 'admin', 'hod'] %}
+  {%- set who = signed_in_as(r) %}
+  <div class="portal" id="portal-{{ r }}">
     <h2>{{ ROLE_META[r].long }}</h2>
     <p>{{ ROLE_META[r].blurb }}</p>
-    <span class="go">Sign in</span>
-  </a>
-  {% endfor %}
+    <div class="portal-links">
+      {%- if who %}
+      <a class="go stretched" href="{{ url_for(r ~ '.dashboard') }}">Continue as {{ who.full_name }}</a>
+      {%- else %}
+      <a class="go stretched" href="{{ url_for(r ~ '.login') }}">Sign in</a>
+      {%- endif %}
+      {%- if r != 'hod' %}
+      <a class="register" href="{{ url_for(r ~ '.register') }}">Register</a>
+      {%- endif %}
+    </div>
+  </div>
+  {%- endfor %}
 </div>
-
-<ol class="steps">
-  <li>The customer submits the request form and proforma (a scanned form can be read automatically).</li>
-  <li>The Test In-charge accepts the sample; the sample code, test report number and work instruction are issued.</li>
-  <li>Engineers enter readings from Excel logsheets; calculations and IS 1180 rule checks run on every save.</li>
-  <li>The Test In-charge reviews every value, correction and the filled report, then forwards it to the HOD.</li>
-  <li>The HOD authorizes the report. It is issued with a SHA-256 seal and the data can no longer be changed.</li>
-</ol>
 {% endblock %}

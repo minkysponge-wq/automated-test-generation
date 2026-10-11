@@ -31,7 +31,10 @@ def _own_job(job_id):
 def dashboard():
     rows = get_db().execute("SELECT r.*, rp.id AS report_id FROM requests r LEFT JOIN reports rp ON rp.job_id=r.id "
                             "WHERE r.customer_id=? ORDER BY r.id DESC", (g.user["id"],)).fetchall()
-    return render_template("customer/dashboard.html", rows=rows)
+    view = request.args.get("view", "")
+    if view == "reports":                      # sidebar "Reports": requests with an issued report
+        rows = [r for r in rows if r["report_id"]]
+    return render_template("customer/dashboard.html", rows=rows, view=view)
 
 
 def _form_page(prefill, prefill_tests, prefill_drawings, errors=None, source_file_id="", extraction_id=""):

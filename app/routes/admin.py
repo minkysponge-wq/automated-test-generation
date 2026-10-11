@@ -16,6 +16,7 @@ from flask import Blueprint, Response, abort, flash, g, jsonify, redirect, rende
 
 import config
 from .. import approvals, audit, fields as F, integrity, jobs, report, workflow
+from ..netinfo import network_url
 from ..auth import role_required
 from ..db import IST, get_db, get_settings, now_ist, tx
 from ..reporting import templates as T
@@ -71,6 +72,10 @@ def dashboard():
     if status:
         sql += " AND r.status=?"
         args.append(status)
+    view = request.args.get("view") or ""
+    if view == "jobs":                         # sidebar "Jobs": accepted and not yet issued
+        sql += " AND r.status NOT IN (?,?,?)"
+        args += [workflow.SUBMITTED, workflow.REJECTED, workflow.ISSUED]
     if d_from:
         sql += " AND substr(r.created_at,1,10) >= ?"
         args.append(d_from)
@@ -79,7 +84,7 @@ def dashboard():
         args.append(d_to)
     rows = conn.execute(sql + " ORDER BY r.id DESC LIMIT 200", args).fetchall()
     return render_template("admin/dashboard.html", kpi=kpi, counts=counts, rows=rows, q=q, status=status,
-                           d_from=d_from, d_to=d_to)
+                           d_from=d_from, d_to=d_to, view=view, lan_url=network_url(request, config.PORT))
 
 
 # =============================================================================

@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% from "components/macros.html" import approval_badge, result_badge, status_badge with context %}
-{% set nav = 'hod.approval_list' %}
+{% set nav = 'approvals' %}
+{% set crumbs = [('Approvals', url_for('hod.approval_list')), ('Approval #' ~ ap.id, None)] %}
 {% block title %}{{ ap.summary }}{% endblock %}
 {% block actions %}{{ approval_badge(ap.status) }}{% endblock %}
 {% block content %}

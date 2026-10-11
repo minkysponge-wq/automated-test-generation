@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% from "components/macros.html" import status_badge with context %}
-{% block title %}My jobs{% endblock %}
+{% block title %}{{ 'My jobs' if view == 'jobs' else 'Home' }}{% endblock %}
 {% block content %}
 <div class="panel">
   {% if rows %}

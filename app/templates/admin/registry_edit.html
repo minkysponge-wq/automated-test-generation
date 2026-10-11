@@ -1,5 +1,6 @@
 {% extends "base.html" %}
-{% set nav = 'admin.registry' %}
+{% set nav = 'config' %}
+{% set crumbs = [('Configuration', url_for('admin.settings')), ('Field registry', url_for('admin.registry')), ('New field' if is_new else f.key, None)] %}
 {% block title %}{{ 'New field' if is_new else 'Edit field ' ~ f.key }}{% endblock %}
 {% block content %}
 <form method="post" class="panel">

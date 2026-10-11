@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% from "components/macros.html" import status_badge, stepper, result_badge, verify_box with context %}
-{% set nav = 'admin.dashboard' %}
+{% set nav = 'requests' if job.status == 'SUBMITTED' else 'jobs' %}
+{% set crumbs = [('Requests', url_for('admin.dashboard', status='SUBMITTED')) if job.status == 'SUBMITTED' else ('Jobs', url_for('admin.dashboard', view='jobs')), (job.sample_code or job.ref, None)] %}
 {% block title %}{{ job.report_no or job.ref }}{% endblock %}
 {% block heading %}{{ job.report_no or job.ref }} <span class="sub">{{ form.customer_name }} - {{ form.rating }}, serial {{ form.serial_numbers }}</span>{% endblock %}
 {% block actions %}{{ status_badge(job.status) }}{% if job.is_sealed %}<span class="badge plain">Sealed</span>{% endif %}{% endblock %}
