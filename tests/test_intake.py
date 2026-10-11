@@ -88,3 +88,20 @@ def test_accuracy_on_reference_documents(seeded):
         path = fname if os.path.isabs(fname) else os.path.join(A.REF, fname)
         ok, _rows = A.evaluate(intake.read_document(path, kind, seeded["conn"]), expected)
         assert ok / len(expected) >= 0.8, f"{name}: {ok}/{len(expected)}"
+
+
+def test_handwritten_v_read_as_u_is_corrected():
+    """Saved read of the request form (11-10-2026): '250 KUA / 11 KV / 433V' must give kVA and fill the proforma."""
+    assert intake.fix_unit_ocr("250 KUA / 11 KU / 433V") == "250 kVA / 11 kV / 433V"
+    assert intake.fix_unit_ocr("25kua") == "25 kVA"
+    assert intake.fix_unit_ocr("KUALA 25 units") == "KUALA 25 units"      # only directly after a number
+    specs = intake.field_specs("request_form")
+    out = {}
+    intake._apply([{"key": "rating", "value": "250 KUA / 11 KV / 433V, 3PH, 50 Hz Copper wound", "confidence": 0.9,
+                    "source": "pdf_page 1"},
+                   {"key": "manufacturer", "value": "250 KUA / 11 KV / 433V EEL1", "confidence": 0.9,
+                    "source": "pdf_page 1"}], specs, out)
+    intake.split_rating(out)
+    assert out["rating"]["value"].startswith("250 kVA / 11 KV")
+    assert out["manufacturer"]["value"].startswith("250 kVA")
+    assert (out["pf_kva"]["value"], out["pf_hv_v"]["value"], out["pf_lv_v"]["value"]) == ("250", "11000", "433")

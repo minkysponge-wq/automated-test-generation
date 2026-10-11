@@ -325,6 +325,15 @@ def _num(text):
     return m.group(0).replace(",", ".") if m else None
 
 
+_KUA_RE = re.compile(r"(\d)\s*[kK][uU][aA]\b")
+_KU_RE = re.compile(r"(\d)\s*[kK][uU]\b")
+
+
+def fix_unit_ocr(text):
+    """Handwritten 'V' read as 'U' after a number: '250 KUA' -> '250 kVA', '11 KU' -> '11 kV'."""
+    return _KU_RE.sub(r"\1 kV", _KUA_RE.sub(r"\1 kVA", text))
+
+
 def normalise(key, raw, spec=None):
     """Return (value, ok). ok=False -> failed validation (confidence capped at 0.5)."""
     spec = spec or {}
@@ -339,7 +348,7 @@ def normalise(key, raw, spec=None):
         if options and sorted(options) == ["No", "Yes"]:
             return ("Yes" if b else "No"), True
         return ("Yes" if b else "No"), True
-    v = str(raw).strip()
+    v = fix_unit_ocr(str(raw).strip())
     if v.lower() in ("", "null", "none", "n/a"):
         return None, True
     if dtype == "number":
