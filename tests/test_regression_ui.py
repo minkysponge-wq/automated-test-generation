@@ -121,3 +121,36 @@ def test_engineer_verify_each_test_then_lock(app, seeded, conn):
     assert "disabled" not in lock
     st = {s["station"]: s for s in jobs.station_status(conn, jobs.get_job(conn, job_id))}
     assert all(s["verified"] for s in st.values())
+
+
+def test_verify_all_and_panel_always_shown(app, seeded, conn):
+    cust, admin, eng = user(conn, "customer1"), user(conn, "admin"), user(conn, "engineer1")
+    with tx(conn):
+        job_id, _ = jobs.create_request(conn, cust, {"customer_name": "Verify all check"}, ["nll", "impedance",
+                                        "winding_res", "nlc_112", "pressure_type", "oil_leak"])
+    job = jobs.get_job(conn, job_id)
+    with tx(conn):
+        jobs.accept(conn, job_id, admin, {"physical_condition": "Suitable", "lab_capability": "Yes"}, {}, job["version"])
+    job = jobs.get_job(conn, job_id)
+    with tx(conn):
+        jobs.assign(conn, job_id, admin, eng["id"], [], job["version"])
+    c = app.test_client()
+    login(c, "engineer", "engineer1", "eng12345")
+    for st, fn in (("losses", "losses.xlsx"), ("pressure", "pressure_oil_leakage.xlsx")):
+        with open(os.path.join(config.SAMPLE_DATA_DIR, fn), "rb") as fh:
+            c.post(f"/engineer/jobs/{job_id}/upload/{st}", data={"file": (fh, fn)}, content_type="multipart/form-data")
+    html = c.get(f"/engineer/jobs/{job_id}").get_data(as_text=True)
+    assert 'id="verify-lock"' in html and 'id="lock-job-top"' in html
+    before = {s["station"]: s for s in jobs.station_status(conn, jobs.get_job(conn, job_id))}
+    ready = [k for k, s in before.items() if not s["verified"] and s["n_values"] and not s["missing"] and not s["ai_pending"]]
+    assert ready
+    assert c.post(f"/engineer/jobs/{job_id}/verify-all").status_code == 302
+    after = {s["station"]: s for s in jobs.station_status(conn, jobs.get_job(conn, job_id))}
+    assert all(after[k]["verified"] for k in ready)
+    if all(s["verified"] for s in after.values()):
+        html = c.get(f"/engineer/jobs/{job_id}").get_data(as_text=True)
+        top = html[html.index('id="lock-job-top"'):html.index('id="lock-job-top"') + 40]
+        assert "disabled" not in top
+    # a job already in technical review still shows the panel, with the buttons disabled and the reason
+    html = c.get(f"/engineer/jobs/{seeded['review_job_id']}").get_data(as_text=True)
+    assert 'id="verify-lock"' in html and "readings can no longer be changed" in html

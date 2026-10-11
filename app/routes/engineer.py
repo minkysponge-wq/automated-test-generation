@@ -270,6 +270,22 @@ def verify(job_id, station):
     return redirect(url_for("engineer.job", job_id=job_id, station=station))
 
 
+@bp.route("/jobs/<int:job_id>/verify-all", methods=["POST"])
+@role_required("engineer")
+def verify_all(job_id):
+    """Verify every test whose readings are complete and confirmed (the others stay for manual handling)."""
+    conn = get_db()
+    job = _my_job(job_id)
+    done = []
+    with tx(conn):
+        for s in jobs.station_status(conn, job):
+            if not s["verified"] and s["n_values"] and not s["missing"] and not s["ai_pending"]:
+                jobs.set_verified(conn, job_id, s["station"], g.user)
+                done.append(s["title"])
+    flash(f"Verified: {', '.join(done)}." if done else "No test was ready to verify.", "success" if done else "info")
+    return redirect(url_for("engineer.job", job_id=job_id))
+
+
 @bp.route("/jobs/<int:job_id>/lock", methods=["POST"])
 @role_required("engineer")
 def lock(job_id):

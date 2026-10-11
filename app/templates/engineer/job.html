@@ -12,6 +12,64 @@
   <p class="note poll-note"></p>
 </div>
 
+{#- Verify and lock: every test of the job in one place, always shown (disabled with the reason when not possible) #}
+{%- set n_verified = stations|selectattr('verified')|list|length %}
+{%- set ready = stations|rejectattr('verified')|selectattr('n_values')|selectattr('ai_pending', 'equalto', 0)|selectattr('missing', 'equalto', [])|list %}
+{%- set why_closed = 'This job is ' ~ STATE_LABELS[job.status] ~ ' - readings can no longer be changed.' %}
+<div class="panel" id="verify-lock">
+  <div class="panel-head"><h2>Verify and lock</h2>
+    <span class="small muted">{{ n_verified }} of {{ stations|length }} tests verified</span></div>
+  <table class="table compact">
+    <thead><tr><th>Test</th><th>Values</th><th>Status</th><th></th></tr></thead>
+    <tbody>
+    {%- for s in stations %}
+      <tr>
+        <td><a href="{{ url_for('engineer.job', job_id=job.id, station=s.station) }}">{{ s.title }}</a></td>
+        <td class="small">{{ s.n_values }} values{% if s.missing %}, {{ s.missing|length }} required missing{% endif %}{% if s.ai_pending %}, {{ s.ai_pending }} AI values to confirm{% endif %}</td>
+        <td>{% if s.verified %}<span class="badge green">Verified</span>{% else %}<span class="badge plain">Not verified</span>{% endif %}</td>
+        <td class="num">
+          {%- if not editable %}<button class="btn btn-xs" disabled title="{{ why_closed }}">Verify</button>
+          {%- elif s.verified %}<span class="small muted">Done</span>
+          {%- elif s.n_values == 0 %}<button class="btn btn-xs" disabled title="Import the logsheet for this test first">Verify</button>
+          {%- elif s.ai_pending %}<button class="btn btn-xs" disabled title="Confirm the automatically read values first">Verify</button>
+          {%- elif s.missing %}<a class="btn btn-xs" href="{{ url_for('engineer.job', job_id=job.id, station=s.station) }}" title="Required values are missing - verify with a reason on the test tab">Verify with reason</a>
+          {%- else %}
+          <form method="post" action="{{ url_for('engineer.verify', job_id=job.id, station=s.station) }}" style="display:inline">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button class="btn btn-xs btn-primary">Verify</button>
+          </form>
+          {%- endif %}
+        </td>
+      </tr>
+    {%- endfor %}
+    </tbody>
+  </table>
+  <div class="panel-body inline-form" style="border-top:1px solid var(--border)">
+    {%- if editable and ready|length > 1 %}
+    <form method="post" action="{{ url_for('engineer.verify_all', job_id=job.id) }}"
+          data-confirm-title="Verify all tests"
+          data-confirm="Mark {{ ready|length }} test(s) with complete, confirmed readings as verified?">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button class="btn btn-sm" id="verify-all">Verify all ({{ ready|length }})</button>
+    </form>
+    {%- endif %}
+    {%- set lock_ok = editable and job.status == 'IN_TESTING' and n_verified == stations|length %}
+    <form method="post" action="{{ url_for('engineer.lock', job_id=job.id) }}"
+          data-confirm="Locking freezes all readings of this job. You will not be able to edit them unless the Test In-charge returns the job. Lock and send for technical review?"
+          data-confirm-title="Lock job {{ job.sample_code }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="version" value="{{ job.version }}">
+      <button class="btn btn-primary btn-sm" id="lock-job-top" {% if not lock_ok %}disabled{% endif %}>Lock job for review</button>
+    </form>
+    <span class="note small" style="margin:0">
+      {%- if not editable %}{{ why_closed }}
+      {%- elif n_verified < stations|length %}Verify every test to lock the job (or use "Lock with missing values" at the bottom of this page).
+      {%- elif job.status != 'IN_TESTING' %}Import readings first to start testing.
+      {%- else %}All tests verified - the job can be locked.{% endif %}
+    </span>
+  </div>
+</div>
+
 {% if editable and ai_on %}
 <div class="panel reader" data-url="{{ url_for('engineer.read_document', job_id=job.id) }}" data-station="auto">
   <div class="panel-body inline-form">
